@@ -27,6 +27,10 @@ public class ViewTarget implements Target {
 
     private final View mView;
 
+    private int mX = -1;
+
+    private int mY = -1;
+
     public ViewTarget(View view) {
         mView = view;
     }
@@ -35,12 +39,22 @@ public class ViewTarget implements Target {
         mView = activity.findViewById(viewId);
     }
 
+    public ViewTarget setX(int x) {
+        mX = x;
+        return this;
+    }
+
+    public ViewTarget setY(int y) {
+        mY = y;
+        return this;
+    }
+
     @Override
     public Point getPoint() {
         int[] location = new int[2];
         mView.getLocationInWindow(location);
-        int x = location[0] + mView.getWidth() / 2;
-        int y = location[1] + mView.getHeight() / 2;
+        int x = mX != -1 ? mX : location[0] + mView.getWidth() / 2;
+        int y = mY != -1 ? mY : location[1] + mView.getHeight() / 2;
         return new Point(x, y);
     }
 }
