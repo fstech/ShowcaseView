@@ -17,7 +17,9 @@
 package com.github.amlcurran.showcaseview.targets;
 
 import android.app.Activity;
+import android.content.res.Resources;
 import android.graphics.Point;
+import android.util.TypedValue;
 import android.view.View;
 
 /**
@@ -39,13 +41,13 @@ public class ViewTarget implements Target {
         mView = activity.findViewById(viewId);
     }
 
-    public ViewTarget setX(int x) {
-        mX = x;
+    public ViewTarget setX(int dpX) {
+        mX = dpToPixels(dpX);
         return this;
     }
 
-    public ViewTarget setY(int y) {
-        mY = y;
+    public ViewTarget setY(int dpY) {
+        mY = dpToPixels(dpY);
         return this;
     }
 
@@ -57,4 +59,10 @@ public class ViewTarget implements Target {
         int y = mY != -1 ? mY : location[1] + mView.getHeight() / 2;
         return new Point(x, y);
     }
+
+    public int dpToPixels(int dp) {
+        Resources resources = Resources.getSystem();
+        return (int) Math.ceil(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.getDisplayMetrics()));
+    }
+
 }
