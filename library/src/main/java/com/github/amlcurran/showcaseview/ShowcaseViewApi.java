@@ -25,6 +25,8 @@ import android.widget.RelativeLayout;
 public interface ShowcaseViewApi {
     void hide();
 
+    void skip();
+
     void show();
 
     void setContentTitle(CharSequence title);

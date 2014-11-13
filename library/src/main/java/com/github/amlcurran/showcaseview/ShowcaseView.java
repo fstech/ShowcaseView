@@ -48,6 +48,7 @@ public class ShowcaseView extends RelativeLayout
     private static final int HOLO_BLUE = Color.parseColor("#33B5E5");
 
     private final Button mEndButton;
+    private final Button mSkipButton;
     private final TextDrawer textDrawer;
     private final ShowcaseDrawer showcaseDrawer;
     private final ShowcaseAreaCalculator showcaseAreaCalculator;
@@ -101,6 +102,7 @@ public class ShowcaseView extends RelativeLayout
         fadeOutMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
 
         mEndButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_button, null);
+        mSkipButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_skip_button, null);
         if (newStyle) {
             showcaseDrawer = new NewShowcaseDrawer(getResources());
         } else {
@@ -129,6 +131,20 @@ public class ShowcaseView extends RelativeLayout
                 mEndButton.setOnClickListener(hideOnClickListener);
             }
             addView(mEndButton);
+        }
+
+        if (mSkipButton.getParent() == null) {
+            int margin = (int) getResources().getDimension(R.dimen.button_margin);
+            RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+            lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+            lps.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+            lps.setMargins(margin, margin, margin, margin);
+            mSkipButton.setLayoutParams(lps);
+            mSkipButton.setText(R.string.skip);
+            if (!hasCustomClickListener) {
+                mSkipButton.setOnClickListener(skipOnClickListener);
+            }
+            addView(mSkipButton);
         }
 
     }
@@ -287,7 +303,15 @@ public class ShowcaseView extends RelativeLayout
         // If the type is set to one-shot, store that it has shot
         shotStateStore.storeShot();
         mEventListener.onShowcaseViewHide(this);
-        fadeOutShowcase();
+        fadeOutShowcase(false);
+    }
+
+    @Override
+    public void skip() {
+        clearBitmap();
+        // If the type is set to one-shot, store that it has shot
+        shotStateStore.storeShot();
+        fadeOutShowcase(true);
     }
 
     private void clearBitmap() {
@@ -297,13 +321,17 @@ public class ShowcaseView extends RelativeLayout
         }
     }
 
-    private void fadeOutShowcase() {
+    private void fadeOutShowcase(final boolean skipped) {
         animationFactory.fadeOutView(this, fadeOutMillis, new AnimationEndListener() {
             @Override
             public void onAnimationEnd() {
                 setVisibility(View.GONE);
                 isShowing = false;
-                mEventListener.onShowcaseViewDidHide(ShowcaseView.this);
+                if (!skipped) {
+                  mEventListener.onShowcaseViewDidHide(ShowcaseView.this);
+                } else {
+                  mEventListener.onShowcaseViewDidSkip(ShowcaseView.this);
+                }
             }
         });
     }
@@ -372,10 +400,12 @@ public class ShowcaseView extends RelativeLayout
 
     public void hideButton() {
         mEndButton.setVisibility(GONE);
+        mSkipButton.setVisibility(GONE);
     }
 
     public void showButton() {
         mEndButton.setVisibility(VISIBLE);
+        mSkipButton.setVisibility(VISIBLE);
     }
 
     /**
@@ -603,8 +633,10 @@ public class ShowcaseView extends RelativeLayout
     private void tintButton(int showcaseColor, boolean tintButton) {
         if (tintButton) {
             mEndButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
+            mSkipButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
         } else {
             mEndButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
+            mSkipButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
         }
     }
 
@@ -631,6 +663,13 @@ public class ShowcaseView extends RelativeLayout
         @Override
         public void onClick(View v) {
             hide();
+        }
+    };
+
+    private OnClickListener skipOnClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            skip();
         }
     };
 

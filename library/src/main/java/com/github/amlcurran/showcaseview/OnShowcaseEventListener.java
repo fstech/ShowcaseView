@@ -28,6 +28,12 @@ public interface OnShowcaseEventListener {
     public void onShowcaseViewHide(ShowcaseView showcaseView);
 
     /**
+     * Called when the ShowcaseView has been told to skipped. Use {@link #onShowcaseViewDidHide(ShowcaseView)}
+     * if you want to know when the ShowcaseView has been fully hidden.
+     */
+    public void onShowcaseViewDidSkip(ShowcaseView showcaseView);
+
+    /**
      * Called when the animation hiding the ShowcaseView has finished, and it is no longer visible on the screen.
      */
     public void onShowcaseViewDidHide(ShowcaseView showcaseView);
@@ -44,6 +50,11 @@ public interface OnShowcaseEventListener {
     public static final OnShowcaseEventListener NONE = new OnShowcaseEventListener() {
         @Override
         public void onShowcaseViewHide(ShowcaseView showcaseView) {
+
+        }
+
+        @Override
+        public void onShowcaseViewDidSkip(ShowcaseView showcaseView) {
 
         }
 
