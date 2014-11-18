@@ -179,13 +179,18 @@ public class ShowcaseView extends RelativeLayout
                 if (!shotStateStore.hasShot()) {
 
                     updateBitmap();
-                    Point targetPoint = target.getPoint();
-                    if (targetPoint != null) {
-                        hasNoTarget = false;
-                        if (animate) {
-                            animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint);
+                    if (target != null) {
+                        Point targetPoint = target.getPoint();
+                        if (targetPoint != null) {
+                            hasNoTarget = false;
+                            if (animate) {
+                              animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint);
+                            } else {
+                              setShowcasePosition(targetPoint);
+                            }
                         } else {
-                            setShowcasePosition(targetPoint);
+                            hasNoTarget = true;
+                            invalidate();
                         }
                     } else {
                         hasNoTarget = true;
@@ -287,8 +292,9 @@ public class ShowcaseView extends RelativeLayout
         // Draw the showcase drawable
         if (!hasNoTarget) {
             showcaseDrawer.drawShowcase(bitmapBuffer, showcaseX, showcaseY, scaleMultiplier);
-            showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
         }
+
+        showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
 
         // Draw the text on the screen, recalculating its position if necessary
         textDrawer.draw(canvas);
