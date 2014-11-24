@@ -24,6 +24,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -32,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import com.github.amlcurran.showcaseview.targets.Target;
@@ -49,6 +51,8 @@ public class ShowcaseView extends RelativeLayout
 
     private final Button mEndButton;
     private final Button mSkipButton;
+    private ImageView mImageView;
+
     private final TextDrawer textDrawer;
     private final ShowcaseDrawer showcaseDrawer;
     private final ShowcaseAreaCalculator showcaseAreaCalculator;
@@ -150,6 +154,35 @@ public class ShowcaseView extends RelativeLayout
 
     }
 
+    public void initImage() {
+        if (mImageView != null) {
+            int margin = (int) getResources().getDimension(R.dimen.button_margin);
+            RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+            lps.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+            lps.addRule(RelativeLayout.CENTER_HORIZONTAL);
+            lps.setMargins(margin, getStatusBarHeight() + margin, margin, margin);
+            mImageView.setLayoutParams(lps);
+            addView(mImageView);
+        }
+    }
+
+    public Rect getImageViewRect() {
+        int margin = (int) getResources().getDimension(R.dimen.button_margin);
+        Rect rect = new Rect();
+        rect.set(mImageView.getLeft(), mImageView.getTop(),
+            mImageView.getMeasuredWidth(), 2*margin + mImageView.getMeasuredHeight());
+        return rect;
+    }
+
+    private int getStatusBarHeight() {
+        int statusBarHeight = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return (int) getResources().getDimension(statusBarHeight);
+    }
+
+    public boolean hasImageView() {
+        return mImageView != null;
+    }
+
     private boolean hasShot() {
         return shotStateStore.hasShot();
     }
@@ -170,6 +203,13 @@ public class ShowcaseView extends RelativeLayout
 
     public void setTarget(final Target target) {
         setShowcase(target, false);
+    }
+
+    public void setImage(final int drawable) {
+        if (drawable != -1) {
+            mImageView = new ImageView(this.getContext());
+            mImageView.setImageDrawable(getResources().getDrawable(drawable));
+        }
     }
 
     public void setShowcase(final Target target, final boolean animate) {
@@ -379,6 +419,7 @@ public class ShowcaseView extends RelativeLayout
     }
 
     private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {
+        showcaseView.initImage();
         ((ViewGroup) activity.getWindow().getDecorView()).addView(showcaseView);
         if (!showcaseView.hasShot()) {
             showcaseView.show();
@@ -484,6 +525,15 @@ public class ShowcaseView extends RelativeLayout
         public Builder setTarget(Target target) {
             showcaseView.setTarget(target);
             return this;
+        }
+
+        /**
+         * Instead of the target, show the image.
+         * @param drawable Drawable to be draw on the showcase.
+         */
+        public Builder setImage(int drawable) {
+          showcaseView.setImage(drawable);
+          return this;
         }
 
         /**

@@ -124,9 +124,12 @@ class TextDrawer {
      */
     public void calculateTextPosition(int canvasW, int canvasH, ShowcaseView showcaseView, boolean shouldCentreText) {
 
-    	Rect showcase = showcaseView.hasShowcaseView() ?
-    			calculator.getShowcaseRect() :
-    			new Rect();
+      Rect showcase = new Rect();
+      if (showcaseView.hasShowcaseView()) {
+        showcase = calculator.getShowcaseRect();
+      } else if (showcaseView.hasImageView()) {
+        showcase = showcaseView.getImageViewRect();
+      }
     	
     	int[] areas = new int[4]; //left, top, right, bottom
     	areas[0] = showcase.left * canvasH;
