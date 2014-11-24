@@ -63,6 +63,7 @@ public class ShowcaseView extends RelativeLayout
     // Touch items
     private boolean hasCustomClickListener = false;
     private boolean blockTouches = true;
+    private boolean blockInsideWindowTouches = false;
     private boolean hideOnTouch = false;
     private OnShowcaseEventListener mEventListener = OnShowcaseEventListener.NONE;
 
@@ -373,7 +374,8 @@ public class ShowcaseView extends RelativeLayout
             return true;
         }
 
-        return blockTouches && distanceFromFocus > showcaseDrawer.getBlockedRadius();
+        return (blockTouches && distanceFromFocus > showcaseDrawer.getBlockedRadius()) ||
+            (blockInsideWindowTouches && distanceFromFocus <= showcaseDrawer.getBlockedRadius());
     }
 
     private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {
@@ -514,6 +516,14 @@ public class ShowcaseView extends RelativeLayout
         }
 
         /**
+         * Blocks touches in the showcased area.
+         */
+        public Builder blockInsideWindowTouches(boolean value) {
+            showcaseView.setBlocksInsideWindowTouches(value);
+            return this;
+        }
+
+        /**
          * Make this ShowcaseView hide when the user touches outside the showcased area.
          * This enables {@link #doNotBlockTouches()} as well.
          * <p/>
@@ -591,6 +601,14 @@ public class ShowcaseView extends RelativeLayout
     @Override
     public void setBlocksTouches(boolean blockTouches) {
         this.blockTouches = blockTouches;
+    }
+
+    /**
+     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#blockInsideWindowTouches(boolean)
+     */
+    @Override
+    public void setBlocksInsideWindowTouches(boolean blockInsideWindowTouches) {
+       this.blockInsideWindowTouches = blockInsideWindowTouches;
     }
 
     /**

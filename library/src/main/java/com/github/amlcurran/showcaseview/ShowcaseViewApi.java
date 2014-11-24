@@ -39,6 +39,8 @@ public interface ShowcaseViewApi {
 
     void setBlocksTouches(boolean blockTouches);
 
+    void setBlocksInsideWindowTouches(boolean b);
+
     void setStyle(int theme);
 
     boolean isShowing();
