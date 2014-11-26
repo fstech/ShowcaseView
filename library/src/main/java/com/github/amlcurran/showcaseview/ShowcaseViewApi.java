@@ -23,25 +23,25 @@ import android.widget.RelativeLayout;
  * ShowcaseView API
  */
 public interface ShowcaseViewApi {
-    void hide();
+  void hide();
 
-    void skip();
+  void skip();
 
-    void show();
+  void show();
 
-    void setContentTitle(CharSequence title);
+  void setContentTitle(CharSequence title);
 
-    void setContentText(CharSequence text);
+  void setContentText(CharSequence text);
 
-    void setButtonPosition(RelativeLayout.LayoutParams layoutParams);
+  void setButtonPosition(RelativeLayout.LayoutParams layoutParams);
 
-    void setHideOnTouchOutside(boolean hideOnTouch);
+  void setHideOnTouchOutside(boolean hideOnTouch);
 
-    void setBlocksTouches(boolean blockTouches);
+  void setBlocksTouches(boolean blockTouches);
 
-    void setBlocksInsideWindowTouches(boolean b);
+  void setBlocksInsideWindowTouches(boolean b);
 
-    void setStyle(int theme);
+  void setStyle(int theme);
 
-    boolean isShowing();
+  boolean isShowing();
 }
