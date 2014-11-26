@@ -24,7 +24,7 @@ interface AnimationFactory {
 
   void fadeOutView(View target, long duration, AnimationEndListener listener);
 
-  void animateTargetToPoint(ShowcaseView showcaseView, Point point);
+  void animateTargetToPoint(ShowcaseView showcaseView, Point point, float radius);
 
   public interface AnimationStartListener {
     void onAnimationStart();

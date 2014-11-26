@@ -24,7 +24,14 @@ public interface Target {
     public Point getPoint() {
       return new Point(1000000, 1000000);
     }
+
+    @Override
+    public float getRadius() {
+      return 0;
+    }
   };
 
   public Point getPoint();
+
+  public float getRadius();
 }

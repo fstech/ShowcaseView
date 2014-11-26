@@ -84,11 +84,12 @@ class AnimatorAnimationFactory implements AnimationFactory {
   }
 
   @Override
-  public void animateTargetToPoint(ShowcaseView showcaseView, Point point) {
+  public void animateTargetToPoint(ShowcaseView showcaseView, Point point, float radius) {
     AnimatorSet set = new AnimatorSet();
     ObjectAnimator xAnimator = ObjectAnimator.ofInt(showcaseView, "showcaseX", point.x);
     ObjectAnimator yAnimator = ObjectAnimator.ofInt(showcaseView, "showcaseY", point.y);
-    set.playTogether(xAnimator, yAnimator);
+    ObjectAnimator radiusAnimator = ObjectAnimator.ofFloat(showcaseView, "showcaseRadius", radius);
+    set.playTogether(xAnimator, yAnimator, radiusAnimator);
     set.setInterpolator(interpolator);
     set.start();
   }

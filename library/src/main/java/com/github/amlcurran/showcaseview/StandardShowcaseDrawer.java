@@ -29,7 +29,7 @@ class StandardShowcaseDrawer implements ShowcaseDrawer {
   protected final Paint eraserPaint;
   protected final Drawable showcaseDrawable;
   private final Paint basicPaint;
-  private final float showcaseRadius;
+  private float showcaseRadius;
   protected int backgroundColour;
 
   public StandardShowcaseDrawer(Resources resources) {
@@ -50,32 +50,27 @@ class StandardShowcaseDrawer implements ShowcaseDrawer {
   }
 
   @Override
-  public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier) {
+  public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier, float radius) {
     Canvas bufferCanvas = new Canvas(buffer);
-    bufferCanvas.drawCircle(x, y, showcaseRadius, eraserPaint);
-    int halfW = getShowcaseWidth() / 2;
-    int halfH = getShowcaseHeight() / 2;
+    bufferCanvas.drawCircle(x, y, radius, eraserPaint);
+    int halfW = getShowcaseWidth(radius) / 2;
+    int halfH = getShowcaseHeight(radius) / 2;
     int left = (int) (x - halfW);
     int top = (int) (y - halfH);
     showcaseDrawable.setBounds(left, top,
-        left + getShowcaseWidth(),
-        top + getShowcaseHeight());
+        left + getShowcaseWidth(radius),
+        top + getShowcaseHeight(radius));
     showcaseDrawable.draw(bufferCanvas);
   }
 
   @Override
-  public int getShowcaseWidth() {
+  public int getShowcaseWidth(float radius) {
     return showcaseDrawable.getIntrinsicWidth();
   }
 
   @Override
-  public int getShowcaseHeight() {
+  public int getShowcaseHeight(float radius) {
     return showcaseDrawable.getIntrinsicHeight();
-  }
-
-  @Override
-  public float getBlockedRadius() {
-    return showcaseRadius;
   }
 
   @Override

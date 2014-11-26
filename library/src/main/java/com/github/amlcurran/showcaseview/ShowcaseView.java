@@ -62,6 +62,7 @@ public class ShowcaseView extends RelativeLayout
   // Showcase metrics
   private int showcaseX = -1;
   private int showcaseY = -1;
+  private float showcaseRadius = 0;
   private float scaleMultiplier = 1f;
 
   // Touch items
@@ -224,9 +225,10 @@ public class ShowcaseView extends RelativeLayout
             if (targetPoint != null) {
               hasNoTarget = false;
               if (animate) {
-                animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint);
+                animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint, target.getRadius());
               } else {
                 setShowcasePosition(targetPoint);
+                showcaseRadius = target.getRadius();
               }
             } else {
               hasNoTarget = true;
@@ -308,7 +310,7 @@ public class ShowcaseView extends RelativeLayout
   }
 
   private void recalculateText() {
-    boolean recalculatedCling = showcaseAreaCalculator.calculateShowcaseRect(showcaseX, showcaseY, showcaseDrawer);
+    boolean recalculatedCling = showcaseAreaCalculator.calculateShowcaseRect(showcaseX, showcaseY, showcaseRadius, showcaseDrawer);
     boolean recalculateText = recalculatedCling || hasAlteredText;
     if (recalculateText) {
       textDrawer.calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(), this, shouldCentreText);
@@ -329,7 +331,7 @@ public class ShowcaseView extends RelativeLayout
 
     // Draw the showcase drawable
     if (!hasNoTarget) {
-      showcaseDrawer.drawShowcase(bitmapBuffer, showcaseX, showcaseY, scaleMultiplier);
+      showcaseDrawer.drawShowcase(bitmapBuffer, showcaseX, showcaseY, scaleMultiplier, showcaseRadius);
     }
 
     showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
@@ -405,13 +407,13 @@ public class ShowcaseView extends RelativeLayout
     double distanceFromFocus = Math.sqrt(Math.pow(xDelta, 2) + Math.pow(yDelta, 2));
 
     if (MotionEvent.ACTION_UP == motionEvent.getAction() &&
-        hideOnTouch && distanceFromFocus > showcaseDrawer.getBlockedRadius()) {
+        hideOnTouch && distanceFromFocus > showcaseRadius) {
       this.hide();
       return true;
     }
 
-    return (blockTouches && distanceFromFocus > showcaseDrawer.getBlockedRadius()) ||
-        (blockInsideWindowTouches && distanceFromFocus <= showcaseDrawer.getBlockedRadius());
+    return (blockTouches && distanceFromFocus > showcaseRadius) ||
+        (blockInsideWindowTouches && distanceFromFocus <= showcaseRadius);
   }
 
   private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {

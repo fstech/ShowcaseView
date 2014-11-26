@@ -26,13 +26,11 @@ import android.graphics.Canvas;
 class NewShowcaseDrawer extends StandardShowcaseDrawer {
 
   private static final int ALPHA_60_PERCENT = 153;
-  private final float outerRadius;
-  private final float innerRadius;
+  private final float outerRadiusSpace;
 
   public NewShowcaseDrawer(Resources resources) {
     super(resources);
-    outerRadius = resources.getDimension(R.dimen.showcase_radius_outer);
-    innerRadius = resources.getDimension(R.dimen.showcase_radius_inner);
+    outerRadiusSpace = resources.getDimension(R.dimen.showcase_radius_outer);
   }
 
   @Override
@@ -41,27 +39,22 @@ class NewShowcaseDrawer extends StandardShowcaseDrawer {
   }
 
   @Override
-  public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier) {
+  public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier, float radius) {
     Canvas bufferCanvas = new Canvas(buffer);
     eraserPaint.setAlpha(ALPHA_60_PERCENT);
-    bufferCanvas.drawCircle(x, y, outerRadius, eraserPaint);
+    bufferCanvas.drawCircle(x, y, radius + outerRadiusSpace, eraserPaint);
     eraserPaint.setAlpha(0);
-    bufferCanvas.drawCircle(x, y, innerRadius, eraserPaint);
+    bufferCanvas.drawCircle(x, y, radius, eraserPaint);
   }
 
   @Override
-  public int getShowcaseWidth() {
-    return (int) (outerRadius * 2);
+  public int getShowcaseWidth(float radius) {
+    return (int) ((radius + outerRadiusSpace) * 2);
   }
 
   @Override
-  public int getShowcaseHeight() {
-    return (int) (outerRadius * 2);
-  }
-
-  @Override
-  public float getBlockedRadius() {
-    return innerRadius;
+  public int getShowcaseHeight(float radius) {
+    return (int) ((radius + outerRadiusSpace) * 2);
   }
 
   @Override

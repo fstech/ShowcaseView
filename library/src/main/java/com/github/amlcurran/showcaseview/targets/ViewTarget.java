@@ -60,6 +60,11 @@ public class ViewTarget implements Target {
     return new Point(x, y);
   }
 
+  @Override
+  public float getRadius() {
+    return Math.max(mView.getMeasuredHeight(), mView.getMeasuredWidth()) / 2;
+  }
+
   public int dpToPixels(int dp) {
     Resources resources = Resources.getSystem();
     return (int) Math.ceil(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.getDisplayMetrics()));

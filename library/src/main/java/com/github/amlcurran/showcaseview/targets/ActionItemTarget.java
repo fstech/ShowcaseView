@@ -30,8 +30,8 @@ public class ActionItemTarget implements Target {
 
   private final Activity mActivity;
   private final int mItemId;
-
-  ActionBarViewWrapper mActionBarWrapper;
+  private ViewTarget mViewTarget;
+  private boolean mIsInitialized;
 
   public ActionItemTarget(Activity activity, int itemId) {
     mActivity = activity;
@@ -40,13 +40,25 @@ public class ActionItemTarget implements Target {
 
   @Override
   public Point getPoint() {
-    setUp();
-    return new ViewTarget(mActionBarWrapper.getActionItem(mItemId)).getPoint();
+    if (!mIsInitialized) {
+      setUp();
+    }
+    return mViewTarget.getPoint();
+  }
+
+  @Override
+  public float getRadius() {
+    if (!mIsInitialized) {
+      setUp();
+    }
+    return mViewTarget.getRadius();
   }
 
   protected void setUp() {
     Reflector reflector = ReflectorFactory.getReflectorForActivity(mActivity);
     ViewParent p = reflector.getActionBarView(); //ActionBarView
-    mActionBarWrapper = new ActionBarViewWrapper(p);
+    ActionBarViewWrapper actionBarWrapper = new ActionBarViewWrapper(p);
+    mViewTarget = new ViewTarget(actionBarWrapper.getActionItem(mItemId));
+    mIsInitialized = true;
   }
 }
