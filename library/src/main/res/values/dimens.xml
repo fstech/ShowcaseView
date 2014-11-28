@@ -21,5 +21,5 @@
     <dimen name="action_bar_offset">66dp</dimen>
     <dimen name="showcase_radius">94dp</dimen>
     <dimen name="showcase_radius_inner">96dp</dimen>
-    <dimen name="showcase_radius_outer">20dp</dimen>
+    <dimen name="showcase_radius_outer">10dp</dimen>
 </resources>

@@ -19,32 +19,36 @@ package com.github.amlcurran.showcaseview;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
 
 /**
  * Created by curraa01 on 13/10/2013.
  */
 class NewShowcaseDrawer extends StandardShowcaseDrawer {
 
-  private static final int ALPHA_60_PERCENT = 153;
   private final float outerRadiusSpace;
+  private final Paint showcasePaint;
 
   public NewShowcaseDrawer(Resources resources) {
     super(resources);
     outerRadiusSpace = resources.getDimension(R.dimen.showcase_radius_outer);
+    showcasePaint = new Paint();
+    showcasePaint.setAntiAlias(true);
+    showcasePaint.setStyle(Style.STROKE);
+    showcasePaint.setStrokeWidth(outerRadiusSpace);
   }
 
   @Override
   public void setShowcaseColour(int color) {
-    eraserPaint.setColor(color);
+    showcasePaint.setColor(color);
   }
 
   @Override
   public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier, float radius) {
     Canvas bufferCanvas = new Canvas(buffer);
-    eraserPaint.setAlpha(ALPHA_60_PERCENT);
-    bufferCanvas.drawCircle(x, y, radius + outerRadiusSpace, eraserPaint);
-    eraserPaint.setAlpha(0);
     bufferCanvas.drawCircle(x, y, radius, eraserPaint);
+    bufferCanvas.drawCircle(x, y, radius, showcasePaint);
   }
 
   @Override
