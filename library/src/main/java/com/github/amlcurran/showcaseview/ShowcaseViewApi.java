@@ -33,7 +33,7 @@ public interface ShowcaseViewApi {
 
   void setContentText(CharSequence text);
 
-  void setButtonPosition(RelativeLayout.LayoutParams layoutParams);
+  void setButtonPosition(int... rules);
 
   void setHideOnTouchOutside(boolean hideOnTouch);
 

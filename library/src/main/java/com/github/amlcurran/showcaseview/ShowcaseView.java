@@ -599,6 +599,16 @@ public class ShowcaseView extends RelativeLayout
       showcaseView.setOnShowcaseEventListener(showcaseEventListener);
       return this;
     }
+
+    public Builder setSkipButtonEnabled(boolean skipButtonEnabled) {
+      showcaseView.mSkipButton.setVisibility(skipButtonEnabled ? VISIBLE : GONE);
+      return this;
+    }
+
+    public Builder setButtonPosition(int... rules) {
+      showcaseView.setButtonPosition(rules);
+      return this;
+    }
   }
 
   /**
@@ -624,8 +634,14 @@ public class ShowcaseView extends RelativeLayout
    * the new position of the button
    */
   @Override
-  public void setButtonPosition(RelativeLayout.LayoutParams layoutParams) {
-    mEndButton.setLayoutParams(layoutParams);
+  public void setButtonPosition(int... rules) {
+    int margin = (int) getResources().getDimension(R.dimen.button_margin);
+    RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+    for (int rule : rules) {
+      lps.addRule(rule);
+    }
+    lps.setMargins(margin, margin, margin, margin);
+    mEndButton.setLayoutParams(lps);
   }
 
   /**
