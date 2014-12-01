@@ -20,17 +20,17 @@ import android.graphics.Point;
 import android.view.View;
 
 interface AnimationFactory {
-    void fadeInView(View target, long duration, AnimationStartListener listener);
+  void fadeInView(View target, long duration, AnimationStartListener listener);
 
-    void fadeOutView(View target, long duration, AnimationEndListener listener);
+  void fadeOutView(View target, long duration, AnimationEndListener listener);
 
-    void animateTargetToPoint(ShowcaseView showcaseView, Point point);
+  void animateTargetToPoint(ShowcaseView showcaseView, Point point, float radius);
 
-    public interface AnimationStartListener {
-        void onAnimationStart();
-    }
+  public interface AnimationStartListener {
+    void onAnimationStart();
+  }
 
-    public interface AnimationEndListener {
-        void onAnimationEnd();
-    }
+  public interface AnimationEndListener {
+    void onAnimationEnd();
+  }
 }

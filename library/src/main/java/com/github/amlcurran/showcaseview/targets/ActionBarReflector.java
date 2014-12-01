@@ -25,30 +25,30 @@ import android.view.ViewParent;
  */
 class ActionBarReflector implements Reflector {
 
-    private Activity mActivity;
+  private Activity mActivity;
 
-    public ActionBarReflector(Activity activity) {
-        mActivity = activity;
+  public ActionBarReflector(Activity activity) {
+    mActivity = activity;
+  }
+
+  @Override
+  public ViewParent getActionBarView() {
+    return getHomeButton().getParent().getParent();
+  }
+
+  @Override
+  public View getHomeButton() {
+    View homeButton = mActivity.findViewById(android.R.id.home);
+    if (homeButton == null) {
+      throw new RuntimeException(
+          "insertShowcaseViewWithType cannot be used when the theme " +
+              "has no ActionBar");
     }
+    return homeButton;
+  }
 
-    @Override
-    public ViewParent getActionBarView() {
-        return getHomeButton().getParent().getParent();
-    }
+  @Override
+  public void showcaseActionItem(int itemId) {
 
-    @Override
-    public View getHomeButton() {
-        View homeButton = mActivity.findViewById(android.R.id.home);
-        if (homeButton == null) {
-            throw new RuntimeException(
-                    "insertShowcaseViewWithType cannot be used when the theme " +
-                            "has no ActionBar");
-        }
-        return homeButton;
-    }
-
-    @Override
-    public void showcaseActionItem(int itemId) {
-
-    }
+  }
 }

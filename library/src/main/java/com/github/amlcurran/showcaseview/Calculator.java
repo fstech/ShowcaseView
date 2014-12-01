@@ -24,11 +24,10 @@ import android.view.View;
  */
 class Calculator {
 
-    static Point getShowcasePointFromView(View view) {
-        Point result = new Point();
-        result.x = view.getLeft() + view.getWidth() / 2;
-        result.y = view.getTop() + view.getHeight() / 2;
-        return result;
-    }
-
+  static Point getShowcasePointFromView(View view) {
+    Point result = new Point();
+    result.x = view.getLeft() + view.getWidth() / 2;
+    result.y = view.getTop() + view.getHeight() / 2;
+    return result;
+  }
 }

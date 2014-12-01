@@ -28,26 +28,37 @@ import android.view.ViewParent;
  */
 public class ActionItemTarget implements Target {
 
-    private final Activity mActivity;
-    private final int mItemId;
+  private final Activity mActivity;
+  private final int mItemId;
+  private ViewTarget mViewTarget;
+  private boolean mIsInitialized;
 
-    ActionBarViewWrapper mActionBarWrapper;
+  public ActionItemTarget(Activity activity, int itemId) {
+    mActivity = activity;
+    mItemId = itemId;
+  }
 
-    public ActionItemTarget(Activity activity, int itemId) {
-        mActivity = activity;
-        mItemId = itemId;
+  @Override
+  public Point getPoint() {
+    if (!mIsInitialized) {
+      setUp();
     }
+    return mViewTarget.getPoint();
+  }
 
-    @Override
-    public Point getPoint() {
-        setUp();
-        return new ViewTarget(mActionBarWrapper.getActionItem(mItemId)).getPoint();
+  @Override
+  public float getRadius() {
+    if (!mIsInitialized) {
+      setUp();
     }
+    return mViewTarget.getRadius();
+  }
 
-    protected void setUp() {
-        Reflector reflector = ReflectorFactory.getReflectorForActivity(mActivity);
-        ViewParent p = reflector.getActionBarView(); //ActionBarView
-        mActionBarWrapper = new ActionBarViewWrapper(p);
-    }
-
+  protected void setUp() {
+    Reflector reflector = ReflectorFactory.getReflectorForActivity(mActivity);
+    ViewParent p = reflector.getActionBarView(); //ActionBarView
+    ActionBarViewWrapper actionBarWrapper = new ActionBarViewWrapper(p);
+    mViewTarget = new ViewTarget(actionBarWrapper.getActionItem(mItemId));
+    mIsInitialized = true;
+  }
 }

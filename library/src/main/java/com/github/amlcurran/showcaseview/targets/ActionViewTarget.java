@@ -22,54 +22,62 @@ import android.view.ViewParent;
 
 public class ActionViewTarget implements Target {
 
-    private final Activity mActivity;
-    private final Type mType;
+  private final Activity mActivity;
+  private final Type mType;
 
-    ActionBarViewWrapper mActionBarWrapper;
-    Reflector mReflector;
+  private ViewTarget mViewTarget;
+  private boolean mIsInitialized;
 
-    public ActionViewTarget(Activity activity, Type type) {
-        mActivity = activity;
-        mType = type;
+  public ActionViewTarget(Activity activity, Type type) {
+    mActivity = activity;
+    mType = type;
+  }
+
+  protected void setUp() {
+    Reflector reflector = ReflectorFactory.getReflectorForActivity(mActivity);
+    ViewParent p = reflector.getActionBarView(); //ActionBarView
+    ActionBarViewWrapper actionBarViewWrapper = new ActionBarViewWrapper(p);
+    switch (mType) {
+    case SPINNER:
+      mViewTarget = new ViewTarget(actionBarViewWrapper.getSpinnerView());
+      break;
+
+    case HOME:
+      mViewTarget = new ViewTarget(reflector.getHomeButton());
+      break;
+
+    case OVERFLOW:
+      mViewTarget = new ViewTarget(actionBarViewWrapper.getOverflowView());
+      break;
+
+    case TITLE:
+      mViewTarget = new ViewTarget(actionBarViewWrapper.getTitleView());
+      break;
+
+    case MEDIA_ROUTE_BUTTON:
+      mViewTarget = new ViewTarget(actionBarViewWrapper.getMediaRouterButtonView());
+      break;
     }
+    mIsInitialized = true;
+  }
 
-    protected void setUp() {
-        mReflector = ReflectorFactory.getReflectorForActivity(mActivity);
-        ViewParent p = mReflector.getActionBarView(); //ActionBarView
-        mActionBarWrapper = new ActionBarViewWrapper(p);
+  @Override
+  public Point getPoint() {
+    if (!mIsInitialized) {
+      setUp();
     }
+    return mViewTarget.getPoint();
+  }
 
-    @Override
-    public Point getPoint() {
-        Target internal = null;
-        setUp();
-        switch (mType) {
-
-            case SPINNER:
-                internal = new ViewTarget(mActionBarWrapper.getSpinnerView());
-                break;
-
-            case HOME:
-                internal = new ViewTarget(mReflector.getHomeButton());
-                break;
-
-            case OVERFLOW:
-                internal = new ViewTarget(mActionBarWrapper.getOverflowView());
-                break;
-
-            case TITLE:
-                internal = new ViewTarget(mActionBarWrapper.getTitleView());
-                break;
-                
-            case MEDIA_ROUTE_BUTTON:
-                internal = new ViewTarget(mActionBarWrapper.getMediaRouterButtonView());
-                break;
-
-        }
-        return internal.getPoint();
+  @Override
+  public float getRadius() {
+    if (!mIsInitialized) {
+      setUp();
     }
+    return mViewTarget.getRadius();
+  }
 
-    public enum Type {
-        SPINNER, HOME, TITLE, OVERFLOW, MEDIA_ROUTE_BUTTON
-    }
+  public enum Type {
+    SPINNER, HOME, TITLE, OVERFLOW, MEDIA_ROUTE_BUTTON
+  }
 }

@@ -16,6 +16,11 @@
 
 package com.github.amlcurran.showcaseview;
 
+import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationEndListener;
+import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationStartListener;
+
+import com.github.amlcurran.showcaseview.targets.Target;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -36,715 +41,724 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
-import com.github.amlcurran.showcaseview.targets.Target;
-
-import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationEndListener;
-import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationStartListener;
-
 /**
  * A view which allows you to showcase areas of your app with an explanation.
  */
 public class ShowcaseView extends RelativeLayout
-        implements View.OnTouchListener, ShowcaseViewApi {
+    implements View.OnTouchListener, ShowcaseViewApi {
 
-    private static final int HOLO_BLUE = Color.parseColor("#33B5E5");
+  private static final int HOLO_BLUE = Color.parseColor("#33B5E5");
 
-    private final Button mEndButton;
-    private final Button mSkipButton;
-    private ImageView mImageView;
+  private final Button mEndButton;
+  private final Button mSkipButton;
+  private ImageView mImageView;
 
-    private final TextDrawer textDrawer;
-    private final ShowcaseDrawer showcaseDrawer;
-    private final ShowcaseAreaCalculator showcaseAreaCalculator;
-    private final AnimationFactory animationFactory;
-    private final ShotStateStore shotStateStore;
+  private final TextDrawer textDrawer;
+  private final ShowcaseDrawer showcaseDrawer;
+  private final ShowcaseAreaCalculator showcaseAreaCalculator;
+  private final AnimationFactory animationFactory;
+  private final ShotStateStore shotStateStore;
 
-    // Showcase metrics
-    private int showcaseX = -1;
-    private int showcaseY = -1;
-    private float scaleMultiplier = 1f;
+  // Showcase metrics
+  private int showcaseX = -1;
+  private int showcaseY = -1;
+  private float showcaseRadius = 0;
+  private float scaleMultiplier = 1f;
 
-    // Touch items
-    private boolean hasCustomClickListener = false;
-    private boolean blockTouches = true;
-    private boolean blockInsideWindowTouches = false;
-    private boolean hideOnTouch = false;
-    private OnShowcaseEventListener mEventListener = OnShowcaseEventListener.NONE;
+  // Touch items
+  private boolean hasCustomClickListener = false;
+  private boolean blockTouches = true;
+  private boolean blockInsideWindowTouches = false;
+  private boolean hideOnTouch = false;
+  private OnShowcaseEventListener mEventListener = OnShowcaseEventListener.NONE;
 
-    private boolean hasAlteredText = false;
-    private boolean hasNoTarget = false;
-    private boolean shouldCentreText;
-    private Bitmap bitmapBuffer;
+  private boolean hasAlteredText = false;
+  private boolean hasNoTarget = false;
+  private boolean shouldCentreText;
+  private Bitmap bitmapBuffer;
 
-    // Animation items
-    private long fadeInMillis;
-    private long fadeOutMillis;
-    private boolean isShowing;
+  // Animation items
+  private long fadeInMillis;
+  private long fadeOutMillis;
+  private boolean isShowing;
 
-    protected ShowcaseView(Context context, boolean newStyle) {
-        this(context, null, R.styleable.CustomTheme_showcaseViewStyle, newStyle);
+  protected ShowcaseView(Context context, boolean newStyle) {
+    this(context, null, R.styleable.CustomTheme_showcaseViewStyle, newStyle);
+  }
+
+  protected ShowcaseView(Context context, AttributeSet attrs, int defStyle, boolean newStyle) {
+    super(context, attrs, defStyle);
+
+    ApiUtils apiUtils = new ApiUtils();
+    animationFactory = new AnimatorAnimationFactory();
+    showcaseAreaCalculator = new ShowcaseAreaCalculator();
+    shotStateStore = new ShotStateStore(context);
+
+    apiUtils.setFitsSystemWindowsCompat(this);
+    getViewTreeObserver().addOnPreDrawListener(new CalculateTextOnPreDraw());
+    getViewTreeObserver().addOnGlobalLayoutListener(new UpdateOnGlobalLayout());
+
+    // Get the attributes for the ShowcaseView
+    final TypedArray styled = context.getTheme()
+        .obtainStyledAttributes(attrs, R.styleable.ShowcaseView, R.attr.showcaseViewStyle,
+            R.style.ShowcaseView);
+
+    // Set the default animation times
+    fadeInMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
+    fadeOutMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
+
+    mEndButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_button, null);
+    mSkipButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_skip_button, null);
+    if (newStyle) {
+      showcaseDrawer = new NewShowcaseDrawer(getResources());
+    } else {
+      showcaseDrawer = new StandardShowcaseDrawer(getResources());
+    }
+    textDrawer = new TextDrawer(getResources(), showcaseAreaCalculator, getContext());
+
+    updateStyle(styled, false);
+
+    init();
+  }
+
+  private void init() {
+
+    setOnTouchListener(this);
+
+    if (mEndButton.getParent() == null) {
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+      lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+      lps.setMargins(margin, margin, margin, margin);
+      mEndButton.setLayoutParams(lps);
+      mEndButton.setText(android.R.string.ok);
+      if (!hasCustomClickListener) {
+        mEndButton.setOnClickListener(hideOnClickListener);
+      }
+      addView(mEndButton);
     }
 
-    protected ShowcaseView(Context context, AttributeSet attrs, int defStyle, boolean newStyle) {
-        super(context, attrs, defStyle);
-
-        ApiUtils apiUtils = new ApiUtils();
-        animationFactory = new AnimatorAnimationFactory();
-        showcaseAreaCalculator = new ShowcaseAreaCalculator();
-        shotStateStore = new ShotStateStore(context);
-
-        apiUtils.setFitsSystemWindowsCompat(this);
-        getViewTreeObserver().addOnPreDrawListener(new CalculateTextOnPreDraw());
-        getViewTreeObserver().addOnGlobalLayoutListener(new UpdateOnGlobalLayout());
-
-        // Get the attributes for the ShowcaseView
-        final TypedArray styled = context.getTheme()
-                .obtainStyledAttributes(attrs, R.styleable.ShowcaseView, R.attr.showcaseViewStyle,
-                        R.style.ShowcaseView);
-
-        // Set the default animation times
-        fadeInMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
-        fadeOutMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
-
-        mEndButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_button, null);
-        mSkipButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_skip_button, null);
-        if (newStyle) {
-            showcaseDrawer = new NewShowcaseDrawer(getResources());
-        } else {
-            showcaseDrawer = new StandardShowcaseDrawer(getResources());
-        }
-        textDrawer = new TextDrawer(getResources(), showcaseAreaCalculator, getContext());
-
-        updateStyle(styled, false);
-
-        init();
+    if (mSkipButton.getParent() == null) {
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+      lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      lps.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+      lps.setMargins(margin, margin, margin, margin);
+      mSkipButton.setLayoutParams(lps);
+      mSkipButton.setText(R.string.skip);
+      if (!hasCustomClickListener) {
+        mSkipButton.setOnClickListener(skipOnClickListener);
+      }
+      addView(mSkipButton);
     }
+  }
 
-    private void init() {
-
-        setOnTouchListener(this);
-
-        if (mEndButton.getParent() == null) {
-            int margin = (int) getResources().getDimension(R.dimen.button_margin);
-            RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-            lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-            lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-            lps.setMargins(margin, margin, margin, margin);
-            mEndButton.setLayoutParams(lps);
-            mEndButton.setText(android.R.string.ok);
-            if (!hasCustomClickListener) {
-                mEndButton.setOnClickListener(hideOnClickListener);
-            }
-            addView(mEndButton);
-        }
-
-        if (mSkipButton.getParent() == null) {
-            int margin = (int) getResources().getDimension(R.dimen.button_margin);
-            RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-            lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-            lps.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-            lps.setMargins(margin, margin, margin, margin);
-            mSkipButton.setLayoutParams(lps);
-            mSkipButton.setText(R.string.skip);
-            if (!hasCustomClickListener) {
-                mSkipButton.setOnClickListener(skipOnClickListener);
-            }
-            addView(mSkipButton);
-        }
-
+  public void initImage() {
+    if (mImageView != null) {
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+      lps.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+      lps.addRule(RelativeLayout.CENTER_HORIZONTAL);
+      lps.setMargins(margin, getStatusBarHeight() + margin, margin, margin);
+      mImageView.setLayoutParams(lps);
+      addView(mImageView);
     }
+  }
 
-    public void initImage() {
-        if (mImageView != null) {
-            int margin = (int) getResources().getDimension(R.dimen.button_margin);
-            RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-            lps.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-            lps.addRule(RelativeLayout.CENTER_HORIZONTAL);
-            lps.setMargins(margin, getStatusBarHeight() + margin, margin, margin);
-            mImageView.setLayoutParams(lps);
-            addView(mImageView);
-        }
+  public Rect getImageViewRect() {
+    int margin = (int) getResources().getDimension(R.dimen.button_margin);
+    Rect rect = new Rect();
+    rect.set(mImageView.getLeft(), mImageView.getTop(),
+        mImageView.getMeasuredWidth(), 2 * margin + mImageView.getMeasuredHeight());
+    return rect;
+  }
+
+  private int getStatusBarHeight() {
+    int statusBarHeight = getResources().getIdentifier("status_bar_height", "dimen", "android");
+    return (int) getResources().getDimension(statusBarHeight);
+  }
+
+  public boolean hasImageView() {
+    return mImageView != null;
+  }
+
+  private boolean hasShot() {
+    return shotStateStore.hasShot();
+  }
+
+  void setShowcasePosition(Point point) {
+    setShowcasePosition(point.x, point.y);
+  }
+
+  void setShowcasePosition(int x, int y) {
+    if (shotStateStore.hasShot()) {
+      return;
     }
+    showcaseX = x;
+    showcaseY = y;
+    //init();
+    invalidate();
+  }
 
-    public Rect getImageViewRect() {
-        int margin = (int) getResources().getDimension(R.dimen.button_margin);
-        Rect rect = new Rect();
-        rect.set(mImageView.getLeft(), mImageView.getTop(),
-            mImageView.getMeasuredWidth(), 2*margin + mImageView.getMeasuredHeight());
-        return rect;
+  public void setTarget(final Target target) {
+    setShowcase(target, false);
+  }
+
+  public void setImage(final int drawable) {
+    if (drawable != -1) {
+      mImageView = new ImageView(this.getContext());
+      mImageView.setImageDrawable(getResources().getDrawable(drawable));
     }
+  }
 
-    private int getStatusBarHeight() {
-        int statusBarHeight = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        return (int) getResources().getDimension(statusBarHeight);
-    }
+  public void setShowcase(final Target target, final boolean animate) {
+    postDelayed(new Runnable() {
+      @Override
+      public void run() {
 
-    public boolean hasImageView() {
-        return mImageView != null;
-    }
+        if (!shotStateStore.hasShot()) {
 
-    private boolean hasShot() {
-        return shotStateStore.hasShot();
-    }
-
-    void setShowcasePosition(Point point) {
-        setShowcasePosition(point.x, point.y);
-    }
-
-    void setShowcasePosition(int x, int y) {
-        if (shotStateStore.hasShot()) {
-            return;
-        }
-        showcaseX = x;
-        showcaseY = y;
-        //init();
-        invalidate();
-    }
-
-    public void setTarget(final Target target) {
-        setShowcase(target, false);
-    }
-
-    public void setImage(final int drawable) {
-        if (drawable != -1) {
-            mImageView = new ImageView(this.getContext());
-            mImageView.setImageDrawable(getResources().getDrawable(drawable));
-        }
-    }
-
-    public void setShowcase(final Target target, final boolean animate) {
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-
-                if (!shotStateStore.hasShot()) {
-
-                    updateBitmap();
-                    if (target != null) {
-                        Point targetPoint = target.getPoint();
-                        if (targetPoint != null) {
-                            hasNoTarget = false;
-                            if (animate) {
-                              animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint);
-                            } else {
-                              setShowcasePosition(targetPoint);
-                            }
-                        } else {
-                            hasNoTarget = true;
-                            invalidate();
-                        }
-                    } else {
-                        hasNoTarget = true;
-                        invalidate();
-                    }
-
-                }
-            }
-        }, 100);
-    }
-
-    private void updateBitmap() {
-        if ((bitmapBuffer == null || haveBoundsChanged()) && getMeasuredWidth() > 0 && getMeasuredHeight() > 0) {
-            if(bitmapBuffer != null)
-        		bitmapBuffer.recycle();
-            bitmapBuffer = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-
-        }
-    }
-
-    private boolean haveBoundsChanged() {
-        return getMeasuredWidth() != bitmapBuffer.getWidth() ||
-                getMeasuredHeight() != bitmapBuffer.getHeight();
-    }
-
-    public boolean hasShowcaseView() {
-        return (showcaseX != 1000000 && showcaseY != 1000000) && !hasNoTarget;
-    }
-
-    public void setShowcaseX(int x) {
-        setShowcasePosition(x, showcaseY);
-    }
-
-    public void setShowcaseY(int y) {
-        setShowcasePosition(showcaseX, y);
-    }
-
-    public int getShowcaseX() {
-        return showcaseX;
-    }
-
-    public int getShowcaseY() {
-        return showcaseY;
-    }
-
-    /**
-     * Override the standard button click event
-     *
-     * @param listener Listener to listen to on click events
-     */
-    public void overrideButtonClick(OnClickListener listener) {
-        if (shotStateStore.hasShot()) {
-            return;
-        }
-        if (mEndButton != null) {
-            if (listener != null) {
-                mEndButton.setOnClickListener(listener);
+          updateBitmap();
+          if (target != null) {
+            Point targetPoint = target.getPoint();
+            if (targetPoint != null) {
+              hasNoTarget = false;
+              if (animate) {
+                animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint, target.getRadius());
+              } else {
+                setShowcasePosition(targetPoint);
+                showcaseRadius = target.getRadius();
+              }
             } else {
-                mEndButton.setOnClickListener(hideOnClickListener);
+              hasNoTarget = true;
+              invalidate();
             }
-        }
-        hasCustomClickListener = true;
-    }
-
-    public void setOnShowcaseEventListener(OnShowcaseEventListener listener) {
-        if (listener != null) {
-            mEventListener = listener;
-        } else {
-            mEventListener = OnShowcaseEventListener.NONE;
-        }
-    }
-
-    public void setButtonText(CharSequence text) {
-        if (mEndButton != null) {
-            mEndButton.setText(text);
-        }
-    }
-
-    private void recalculateText() {
-        boolean recalculatedCling = showcaseAreaCalculator.calculateShowcaseRect(showcaseX, showcaseY, showcaseDrawer);
-        boolean recalculateText = recalculatedCling || hasAlteredText;
-        if (recalculateText) {
-            textDrawer.calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(), this, shouldCentreText);
-        }
-        hasAlteredText = false;
-    }
-
-    @SuppressWarnings("NullableProblems")
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        if (showcaseX < 0 || showcaseY < 0 || shotStateStore.hasShot() || bitmapBuffer == null) {
-            super.dispatchDraw(canvas);
-            return;
-        }
-
-        //Draw background color
-        showcaseDrawer.erase(bitmapBuffer);
-
-        // Draw the showcase drawable
-        if (!hasNoTarget) {
-            showcaseDrawer.drawShowcase(bitmapBuffer, showcaseX, showcaseY, scaleMultiplier);
-        }
-
-        showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
-
-        // Draw the text on the screen, recalculating its position if necessary
-        textDrawer.draw(canvas);
-
-        super.dispatchDraw(canvas);
-
-    }
-
-    @Override
-    public void hide() {
-        clearBitmap();
-        // If the type is set to one-shot, store that it has shot
-        shotStateStore.storeShot();
-        mEventListener.onShowcaseViewHide(this);
-        fadeOutShowcase(false);
-    }
-
-    @Override
-    public void skip() {
-        clearBitmap();
-        // If the type is set to one-shot, store that it has shot
-        shotStateStore.storeShot();
-        fadeOutShowcase(true);
-    }
-
-    private void clearBitmap() {
-        if (bitmapBuffer != null && !bitmapBuffer.isRecycled()) {
-            bitmapBuffer.recycle();
-            bitmapBuffer = null;
-        }
-    }
-
-    private void fadeOutShowcase(final boolean skipped) {
-        animationFactory.fadeOutView(this, fadeOutMillis, new AnimationEndListener() {
-            @Override
-            public void onAnimationEnd() {
-                setVisibility(View.GONE);
-                isShowing = false;
-                if (!skipped) {
-                  mEventListener.onShowcaseViewDidHide(ShowcaseView.this);
-                } else {
-                  mEventListener.onShowcaseViewDidSkip(ShowcaseView.this);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void show() {
-        isShowing = true;
-        mEventListener.onShowcaseViewShow(this);
-        fadeInShowcase();
-    }
-
-    private void fadeInShowcase() {
-        animationFactory.fadeInView(this, fadeInMillis,
-                new AnimationStartListener() {
-                    @Override
-                    public void onAnimationStart() {
-                        setVisibility(View.VISIBLE);
-                    }
-                }
-        );
-    }
-
-    @Override
-    public boolean onTouch(View view, MotionEvent motionEvent) {
-
-        float xDelta = Math.abs(motionEvent.getRawX() - showcaseX);
-        float yDelta = Math.abs(motionEvent.getRawY() - showcaseY);
-        double distanceFromFocus = Math.sqrt(Math.pow(xDelta, 2) + Math.pow(yDelta, 2));
-
-        if (MotionEvent.ACTION_UP == motionEvent.getAction() &&
-                hideOnTouch && distanceFromFocus > showcaseDrawer.getBlockedRadius()) {
-            this.hide();
-            return true;
-        }
-
-        return (blockTouches && distanceFromFocus > showcaseDrawer.getBlockedRadius()) ||
-            (blockInsideWindowTouches && distanceFromFocus <= showcaseDrawer.getBlockedRadius());
-    }
-
-    private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {
-        showcaseView.initImage();
-        ((ViewGroup) activity.getWindow().getDecorView()).addView(showcaseView);
-        if (!showcaseView.hasShot()) {
-            showcaseView.show();
-        } else {
-            showcaseView.hideImmediate();
-        }
-    }
-
-    private void hideImmediate() {
-        isShowing = false;
-        setVisibility(GONE);
-    }
-
-    @Override
-    public void setContentTitle(CharSequence title) {
-        textDrawer.setContentTitle(title);
-    }
-
-    @Override
-    public void setContentText(CharSequence text) {
-        textDrawer.setContentText(text);
-    }
-
-    private void setScaleMultiplier(float scaleMultiplier) {
-        this.scaleMultiplier = scaleMultiplier;
-    }
-
-    public void hideButton() {
-        mEndButton.setVisibility(GONE);
-        mSkipButton.setVisibility(GONE);
-    }
-
-    public void showButton() {
-        mEndButton.setVisibility(VISIBLE);
-        mSkipButton.setVisibility(VISIBLE);
-    }
-
-    /**
-     * Builder class which allows easier creation of {@link ShowcaseView}s.
-     * It is recommended that you use this Builder class.
-     */
-    public static class Builder {
-
-        final ShowcaseView showcaseView;
-        private final Activity activity;
-
-        public Builder(Activity activity) {
-            this(activity, false);
-        }
-
-        public Builder(Activity activity, boolean useNewStyle) {
-            this.activity = activity;
-            this.showcaseView = new ShowcaseView(activity, useNewStyle);
-            this.showcaseView.setTarget(Target.NONE);
-        }
-
-        /**
-         * Create the {@link com.github.amlcurran.showcaseview.ShowcaseView} and show it.
-         *
-         * @return the created ShowcaseView
-         */
-        public ShowcaseView build() {
-            insertShowcaseView(showcaseView, activity);
-            return showcaseView;
-        }
-
-        /**
-         * Set the title text shown on the ShowcaseView.
-         */
-        public Builder setContentTitle(int resId) {
-            return setContentTitle(activity.getString(resId));
-        }
-
-        /**
-         * Set the title text shown on the ShowcaseView.
-         */
-        public Builder setContentTitle(CharSequence title) {
-            showcaseView.setContentTitle(title);
-            return this;
-        }
-
-        /**
-         * Set the descriptive text shown on the ShowcaseView.
-         */
-        public Builder setContentText(int resId) {
-            return setContentText(activity.getString(resId));
-        }
-
-        /**
-         * Set the descriptive text shown on the ShowcaseView.
-         */
-        public Builder setContentText(CharSequence text) {
-            showcaseView.setContentText(text);
-            return this;
-        }
-
-        /**
-         * Set the target of the showcase.
-         *
-         * @param target a {@link com.github.amlcurran.showcaseview.targets.Target} representing
-         *               the item to showcase (e.g., a button, or action item).
-         */
-        public Builder setTarget(Target target) {
-            showcaseView.setTarget(target);
-            return this;
-        }
-
-        /**
-         * Instead of the target, show the image.
-         * @param drawable Drawable to be draw on the showcase.
-         */
-        public Builder setImage(int drawable) {
-          showcaseView.setImage(drawable);
-          return this;
-        }
-
-        /**
-         * Set the style of the ShowcaseView. See the sample app for example styles.
-         */
-        public Builder setStyle(int theme) {
-            showcaseView.setStyle(theme);
-            return this;
-        }
-
-        /**
-         * Set a listener which will override the button clicks.
-         * <p/>
-         * Note that you will have to manually hide the ShowcaseView
-         */
-        public Builder setOnClickListener(OnClickListener onClickListener) {
-            showcaseView.overrideButtonClick(onClickListener);
-            return this;
-        }
-
-        /**
-         * Don't make the ShowcaseView block touches on itself. This doesn't
-         * block touches in the showcased area.
-         * <p/>
-         * By default, the ShowcaseView does block touches
-         */
-        public Builder doNotBlockTouches() {
-            showcaseView.setBlocksTouches(false);
-            return this;
-        }
-
-        /**
-         * Blocks touches in the showcased area.
-         */
-        public Builder blockInsideWindowTouches(boolean value) {
-            showcaseView.setBlocksInsideWindowTouches(value);
-            return this;
-        }
-
-        /**
-         * Make this ShowcaseView hide when the user touches outside the showcased area.
-         * This enables {@link #doNotBlockTouches()} as well.
-         * <p/>
-         * By default, the ShowcaseView doesn't hide on touch.
-         */
-        public Builder hideOnTouchOutside() {
-            showcaseView.setBlocksTouches(true);
-            showcaseView.setHideOnTouchOutside(true);
-            return this;
-        }
-
-        /**
-         * Set the ShowcaseView to only ever show once.
-         *
-         * @param shotId a unique identifier (<em>across the app</em>) to store
-         *               whether this ShowcaseView has been shown.
-         */
-        public Builder singleShot(long shotId) {
-            showcaseView.setSingleShot(shotId);
-            return this;
-        }
-
-        public Builder setShowcaseEventListener(OnShowcaseEventListener showcaseEventListener) {
-            showcaseView.setOnShowcaseEventListener(showcaseEventListener);
-            return this;
-        }
-    }
-
-    /**
-     * Set whether the text should be centred in the screen, or left-aligned (which is the default).
-     */
-    public void setShouldCentreText(boolean shouldCentreText) {
-        this.shouldCentreText = shouldCentreText;
-        hasAlteredText = true;
-        invalidate();
-    }
-
-    /**
-     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#setSingleShot(long)
-     */
-    private void setSingleShot(long shotId) {
-        shotStateStore.setSingleShot(shotId);
-    }
-
-    /**
-     * Change the position of the ShowcaseView's button from the default bottom-right position.
-     *
-     * @param layoutParams a {@link android.widget.RelativeLayout.LayoutParams} representing
-     *                     the new position of the button
-     */
-    @Override
-    public void setButtonPosition(RelativeLayout.LayoutParams layoutParams) {
-        mEndButton.setLayoutParams(layoutParams);
-    }
-
-    /**
-     * Set the duration of the fading in and fading out of the ShowcaseView
-     */
-    private void setFadeDurations(long fadeInMillis, long fadeOutMillis) {
-        this.fadeInMillis = fadeInMillis;
-        this.fadeOutMillis = fadeOutMillis;
-    }
-
-    /**
-     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#hideOnTouchOutside()
-     */
-    @Override
-    public void setHideOnTouchOutside(boolean hideOnTouch) {
-        this.hideOnTouch = hideOnTouch;
-    }
-
-    /**
-     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#doNotBlockTouches()
-     */
-    @Override
-    public void setBlocksTouches(boolean blockTouches) {
-        this.blockTouches = blockTouches;
-    }
-
-    /**
-     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#blockInsideWindowTouches(boolean)
-     */
-    @Override
-    public void setBlocksInsideWindowTouches(boolean blockInsideWindowTouches) {
-       this.blockInsideWindowTouches = blockInsideWindowTouches;
-    }
-
-    /**
-     * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#setStyle(int)
-     */
-    @Override
-    public void setStyle(int theme) {
-        TypedArray array = getContext().obtainStyledAttributes(theme, R.styleable.ShowcaseView);
-        updateStyle(array, true);
-    }
-
-    @Override
-    public boolean isShowing() {
-        return isShowing;
-    }
-
-    private void updateStyle(TypedArray styled, boolean invalidate) {
-        int backgroundColor = styled.getColor(R.styleable.ShowcaseView_sv_backgroundColor, Color.argb(128, 80, 80, 80));
-        int showcaseColor = styled.getColor(R.styleable.ShowcaseView_sv_showcaseColor, HOLO_BLUE);
-        String buttonText = styled.getString(R.styleable.ShowcaseView_sv_buttonText);
-        if (TextUtils.isEmpty(buttonText)) {
-            buttonText = getResources().getString(android.R.string.ok);
-        }
-        boolean tintButton = styled.getBoolean(R.styleable.ShowcaseView_sv_tintButtonColor, true);
-
-        int titleTextAppearance = styled.getResourceId(R.styleable.ShowcaseView_sv_titleTextAppearance,
-                R.style.TextAppearance_ShowcaseView_Title);
-        int detailTextAppearance = styled.getResourceId(R.styleable.ShowcaseView_sv_detailTextAppearance,
-                R.style.TextAppearance_ShowcaseView_Detail);
-
-        styled.recycle();
-
-        showcaseDrawer.setShowcaseColour(showcaseColor);
-        showcaseDrawer.setBackgroundColour(backgroundColor);
-        tintButton(showcaseColor, tintButton);
-        mEndButton.setText(buttonText);
-        textDrawer.setTitleStyling(titleTextAppearance);
-        textDrawer.setDetailStyling(detailTextAppearance);
-        hasAlteredText = true;
-
-        if (invalidate) {
+          } else {
+            hasNoTarget = true;
             invalidate();
+          }
         }
+      }
+    }, 100);
+  }
+
+  private void updateBitmap() {
+    if ((bitmapBuffer == null || haveBoundsChanged()) && getMeasuredWidth() > 0 && getMeasuredHeight() > 0) {
+      if (bitmapBuffer != null)
+        bitmapBuffer.recycle();
+      bitmapBuffer = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+    }
+  }
+
+  private boolean haveBoundsChanged() {
+    return getMeasuredWidth() != bitmapBuffer.getWidth() ||
+        getMeasuredHeight() != bitmapBuffer.getHeight();
+  }
+
+  public boolean hasShowcaseView() {
+    return (showcaseX != 1000000 && showcaseY != 1000000) && !hasNoTarget;
+  }
+
+  public void setShowcaseX(int x) {
+    setShowcasePosition(x, showcaseY);
+  }
+
+  public void setShowcaseY(int y) {
+    setShowcasePosition(showcaseX, y);
+  }
+
+  public int getShowcaseX() {
+    return showcaseX;
+  }
+
+  public int getShowcaseY() {
+    return showcaseY;
+  }
+
+  /**
+   * Override the standard button click event
+   *
+   * @param listener Listener to listen to on click events
+   */
+  public void overrideButtonClick(OnClickListener listener) {
+    if (shotStateStore.hasShot()) {
+      return;
+    }
+    if (mEndButton != null) {
+      if (listener != null) {
+        mEndButton.setOnClickListener(listener);
+      } else {
+        mEndButton.setOnClickListener(hideOnClickListener);
+      }
+    }
+    hasCustomClickListener = true;
+  }
+
+  public void setOnShowcaseEventListener(OnShowcaseEventListener listener) {
+    if (listener != null) {
+      mEventListener = listener;
+    } else {
+      mEventListener = OnShowcaseEventListener.NONE;
+    }
+  }
+
+  public void setButtonText(CharSequence text) {
+    if (mEndButton != null) {
+      mEndButton.setText(text);
+    }
+  }
+
+  private void recalculateText() {
+    boolean recalculatedCling = showcaseAreaCalculator.calculateShowcaseRect(showcaseX, showcaseY, showcaseRadius, showcaseDrawer);
+    boolean recalculateText = recalculatedCling || hasAlteredText;
+    if (recalculateText) {
+      textDrawer.calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(), this, shouldCentreText);
+    }
+    hasAlteredText = false;
+  }
+
+  @SuppressWarnings("NullableProblems")
+  @Override
+  protected void dispatchDraw(Canvas canvas) {
+    if (showcaseX < 0 || showcaseY < 0 || shotStateStore.hasShot() || bitmapBuffer == null) {
+      super.dispatchDraw(canvas);
+      return;
     }
 
-    private void tintButton(int showcaseColor, boolean tintButton) {
-        if (tintButton) {
-            mEndButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
-            mSkipButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
+    //Draw background color
+    showcaseDrawer.erase(bitmapBuffer);
+
+    // Draw the showcase drawable
+    if (!hasNoTarget) {
+      showcaseDrawer.drawShowcase(bitmapBuffer, showcaseX, showcaseY, scaleMultiplier, showcaseRadius);
+    }
+
+    showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
+
+    // Draw the text on the screen, recalculating its position if necessary
+    textDrawer.draw(canvas);
+
+    super.dispatchDraw(canvas);
+  }
+
+  @Override
+  public void hide() {
+    clearBitmap();
+    // If the type is set to one-shot, store that it has shot
+    shotStateStore.storeShot();
+    mEventListener.onShowcaseViewHide(this);
+    fadeOutShowcase(false);
+  }
+
+  @Override
+  public void skip() {
+    clearBitmap();
+    // If the type is set to one-shot, store that it has shot
+    shotStateStore.storeShot();
+    fadeOutShowcase(true);
+  }
+
+  private void clearBitmap() {
+    if (bitmapBuffer != null && !bitmapBuffer.isRecycled()) {
+      bitmapBuffer.recycle();
+      bitmapBuffer = null;
+    }
+  }
+
+  private void fadeOutShowcase(final boolean skipped) {
+    animationFactory.fadeOutView(this, fadeOutMillis, new AnimationEndListener() {
+      @Override
+      public void onAnimationEnd() {
+        setVisibility(View.GONE);
+        isShowing = false;
+        if (!skipped) {
+          mEventListener.onShowcaseViewDidHide(ShowcaseView.this);
         } else {
-            mEndButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
-            mSkipButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
+          mEventListener.onShowcaseViewDidSkip(ShowcaseView.this);
         }
+      }
+    });
+  }
+
+  @Override
+  public void show() {
+    isShowing = true;
+    mEventListener.onShowcaseViewShow(this);
+    fadeInShowcase();
+  }
+
+  private void fadeInShowcase() {
+    animationFactory.fadeInView(this, fadeInMillis,
+        new AnimationStartListener() {
+          @Override
+          public void onAnimationStart() {
+            setVisibility(View.VISIBLE);
+          }
+        }
+    );
+  }
+
+  @Override
+  public boolean onTouch(View view, MotionEvent motionEvent) {
+
+    float xDelta = Math.abs(motionEvent.getRawX() - showcaseX);
+    float yDelta = Math.abs(motionEvent.getRawY() - showcaseY);
+    double distanceFromFocus = Math.sqrt(Math.pow(xDelta, 2) + Math.pow(yDelta, 2));
+
+    if (MotionEvent.ACTION_UP == motionEvent.getAction() &&
+        hideOnTouch && distanceFromFocus > showcaseRadius) {
+      this.hide();
+      return true;
     }
 
-    private class UpdateOnGlobalLayout implements ViewTreeObserver.OnGlobalLayoutListener {
+    return (blockTouches && distanceFromFocus > showcaseRadius) ||
+        (blockInsideWindowTouches && distanceFromFocus <= showcaseRadius);
+  }
 
-        @Override
-        public void onGlobalLayout() {
-            if (!shotStateStore.hasShot()) {
-                updateBitmap();
-            }
-        }
+  private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {
+    showcaseView.initImage();
+    ((ViewGroup) activity.getWindow().getDecorView()).addView(showcaseView);
+    if (!showcaseView.hasShot()) {
+      showcaseView.show();
+    } else {
+      showcaseView.hideImmediate();
+    }
+  }
+
+  private void hideImmediate() {
+    isShowing = false;
+    setVisibility(GONE);
+  }
+
+  @Override
+  public void setContentTitle(CharSequence title) {
+    textDrawer.setContentTitle(title);
+  }
+
+  @Override
+  public void setContentText(CharSequence text) {
+    textDrawer.setContentText(text);
+  }
+
+  private void setScaleMultiplier(float scaleMultiplier) {
+    this.scaleMultiplier = scaleMultiplier;
+  }
+
+  public void hideButton() {
+    mEndButton.setVisibility(GONE);
+    mSkipButton.setVisibility(GONE);
+  }
+
+  public void showButton() {
+    mEndButton.setVisibility(VISIBLE);
+    mSkipButton.setVisibility(VISIBLE);
+  }
+
+  /**
+   * Builder class which allows easier creation of {@link ShowcaseView}s.
+   * It is recommended that you use this Builder class.
+   */
+  public static class Builder {
+
+    final ShowcaseView showcaseView;
+    private final Activity activity;
+
+    public Builder(Activity activity) {
+      this(activity, false);
     }
 
-    private class CalculateTextOnPreDraw implements ViewTreeObserver.OnPreDrawListener {
-
-        @Override
-        public boolean onPreDraw() {
-            recalculateText();
-            return true;
-        }
+    public Builder(Activity activity, boolean useNewStyle) {
+      this.activity = activity;
+      this.showcaseView = new ShowcaseView(activity, useNewStyle);
+      this.showcaseView.setTarget(Target.NONE);
     }
 
-    private OnClickListener hideOnClickListener = new OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            hide();
-        }
-    };
+    /**
+     * Create the {@link com.github.amlcurran.showcaseview.ShowcaseView} and show it.
+     *
+     * @return the created ShowcaseView
+     */
+    public ShowcaseView build() {
+      insertShowcaseView(showcaseView, activity);
+      return showcaseView;
+    }
 
-    private OnClickListener skipOnClickListener = new OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            skip();
-        }
-    };
+    /**
+     * Set the title text shown on the ShowcaseView.
+     */
+    public Builder setContentTitle(int resId) {
+      return setContentTitle(activity.getString(resId));
+    }
 
+    /**
+     * Set the title text shown on the ShowcaseView.
+     */
+    public Builder setContentTitle(CharSequence title) {
+      showcaseView.setContentTitle(title);
+      return this;
+    }
+
+    /**
+     * Set the descriptive text shown on the ShowcaseView.
+     */
+    public Builder setContentText(int resId) {
+      return setContentText(activity.getString(resId));
+    }
+
+    /**
+     * Set the descriptive text shown on the ShowcaseView.
+     */
+    public Builder setContentText(CharSequence text) {
+      showcaseView.setContentText(text);
+      return this;
+    }
+
+    /**
+     * Set the target of the showcase.
+     *
+     * @param target a {@link com.github.amlcurran.showcaseview.targets.Target} representing
+     * the item to showcase (e.g., a button, or action item).
+     */
+    public Builder setTarget(Target target) {
+      showcaseView.setTarget(target);
+      return this;
+    }
+
+    /**
+     * Instead of the target, show the image.
+     *
+     * @param drawable Drawable to be draw on the showcase.
+     */
+    public Builder setImage(int drawable) {
+      showcaseView.setImage(drawable);
+      return this;
+    }
+
+    /**
+     * Set the style of the ShowcaseView. See the sample app for example styles.
+     */
+    public Builder setStyle(int theme) {
+      showcaseView.setStyle(theme);
+      return this;
+    }
+
+    /**
+     * Set a listener which will override the button clicks.
+     * <p/>
+     * Note that you will have to manually hide the ShowcaseView
+     */
+    public Builder setOnClickListener(OnClickListener onClickListener) {
+      showcaseView.overrideButtonClick(onClickListener);
+      return this;
+    }
+
+    /**
+     * Don't make the ShowcaseView block touches on itself. This doesn't
+     * block touches in the showcased area.
+     * <p/>
+     * By default, the ShowcaseView does block touches
+     */
+    public Builder doNotBlockTouches() {
+      showcaseView.setBlocksTouches(false);
+      return this;
+    }
+
+    /**
+     * Blocks touches in the showcased area.
+     */
+    public Builder blockInsideWindowTouches(boolean value) {
+      showcaseView.setBlocksInsideWindowTouches(value);
+      return this;
+    }
+
+    /**
+     * Make this ShowcaseView hide when the user touches outside the showcased area.
+     * This enables {@link #doNotBlockTouches()} as well.
+     * <p/>
+     * By default, the ShowcaseView doesn't hide on touch.
+     */
+    public Builder hideOnTouchOutside() {
+      showcaseView.setBlocksTouches(true);
+      showcaseView.setHideOnTouchOutside(true);
+      return this;
+    }
+
+    /**
+     * Set the ShowcaseView to only ever show once.
+     *
+     * @param shotId a unique identifier (<em>across the app</em>) to store
+     * whether this ShowcaseView has been shown.
+     */
+    public Builder singleShot(long shotId) {
+      showcaseView.setSingleShot(shotId);
+      return this;
+    }
+
+    public Builder setShowcaseEventListener(OnShowcaseEventListener showcaseEventListener) {
+      showcaseView.setOnShowcaseEventListener(showcaseEventListener);
+      return this;
+    }
+
+    public Builder setSkipButtonEnabled(boolean skipButtonEnabled) {
+      showcaseView.mSkipButton.setVisibility(skipButtonEnabled ? VISIBLE : GONE);
+      return this;
+    }
+
+    public Builder setButtonPosition(int... rules) {
+      showcaseView.setButtonPosition(rules);
+      return this;
+    }
+  }
+
+  /**
+   * Set whether the text should be centred in the screen, or left-aligned (which is the default).
+   */
+  public void setShouldCentreText(boolean shouldCentreText) {
+    this.shouldCentreText = shouldCentreText;
+    hasAlteredText = true;
+    invalidate();
+  }
+
+  /**
+   * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#setSingleShot(long)
+   */
+  private void setSingleShot(long shotId) {
+    shotStateStore.setSingleShot(shotId);
+  }
+
+  /**
+   * Change the position of the ShowcaseView's button from the default bottom-right position.
+   *
+   * @param layoutParams a {@link android.widget.RelativeLayout.LayoutParams} representing
+   * the new position of the button
+   */
+  @Override
+  public void setButtonPosition(int... rules) {
+    int margin = (int) getResources().getDimension(R.dimen.button_margin);
+    RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+    for (int rule : rules) {
+      lps.addRule(rule);
+    }
+    lps.setMargins(margin, margin, margin, margin);
+    mEndButton.setLayoutParams(lps);
+  }
+
+  /**
+   * Set the duration of the fading in and fading out of the ShowcaseView
+   */
+  private void setFadeDurations(long fadeInMillis, long fadeOutMillis) {
+    this.fadeInMillis = fadeInMillis;
+    this.fadeOutMillis = fadeOutMillis;
+  }
+
+  /**
+   * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#hideOnTouchOutside()
+   */
+  @Override
+  public void setHideOnTouchOutside(boolean hideOnTouch) {
+    this.hideOnTouch = hideOnTouch;
+  }
+
+  /**
+   * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#doNotBlockTouches()
+   */
+  @Override
+  public void setBlocksTouches(boolean blockTouches) {
+    this.blockTouches = blockTouches;
+  }
+
+  /**
+   * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#blockInsideWindowTouches(boolean)
+   */
+  @Override
+  public void setBlocksInsideWindowTouches(boolean blockInsideWindowTouches) {
+    this.blockInsideWindowTouches = blockInsideWindowTouches;
+  }
+
+  /**
+   * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#setStyle(int)
+   */
+  @Override
+  public void setStyle(int theme) {
+    TypedArray array = getContext().obtainStyledAttributes(theme, R.styleable.ShowcaseView);
+    updateStyle(array, true);
+  }
+
+  @Override
+  public boolean isShowing() {
+    return isShowing;
+  }
+
+  private void updateStyle(TypedArray styled, boolean invalidate) {
+    int backgroundColor = styled.getColor(R.styleable.ShowcaseView_sv_backgroundColor, Color.argb(128, 80, 80, 80));
+    int showcaseColor = styled.getColor(R.styleable.ShowcaseView_sv_showcaseColor, HOLO_BLUE);
+    String buttonText = styled.getString(R.styleable.ShowcaseView_sv_buttonText);
+    if (TextUtils.isEmpty(buttonText)) {
+      buttonText = getResources().getString(android.R.string.ok);
+    }
+    boolean tintButton = styled.getBoolean(R.styleable.ShowcaseView_sv_tintButtonColor, true);
+
+    int titleTextAppearance = styled.getResourceId(R.styleable.ShowcaseView_sv_titleTextAppearance,
+        R.style.TextAppearance_ShowcaseView_Title);
+    int detailTextAppearance = styled.getResourceId(R.styleable.ShowcaseView_sv_detailTextAppearance,
+        R.style.TextAppearance_ShowcaseView_Detail);
+
+    styled.recycle();
+
+    showcaseDrawer.setShowcaseColour(showcaseColor);
+    showcaseDrawer.setBackgroundColour(backgroundColor);
+    tintButton(showcaseColor, tintButton);
+    mEndButton.setText(buttonText);
+    textDrawer.setTitleStyling(titleTextAppearance);
+    textDrawer.setDetailStyling(detailTextAppearance);
+    hasAlteredText = true;
+
+    if (invalidate) {
+      invalidate();
+    }
+  }
+
+  private void tintButton(int showcaseColor, boolean tintButton) {
+    if (tintButton) {
+      mEndButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
+      mSkipButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
+    } else {
+      mEndButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
+      mSkipButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
+    }
+  }
+
+  private class UpdateOnGlobalLayout implements ViewTreeObserver.OnGlobalLayoutListener {
+
+    @Override
+    public void onGlobalLayout() {
+      if (!shotStateStore.hasShot()) {
+        updateBitmap();
+      }
+    }
+  }
+
+  private class CalculateTextOnPreDraw implements ViewTreeObserver.OnPreDrawListener {
+
+    @Override
+    public boolean onPreDraw() {
+      recalculateText();
+      return true;
+    }
+  }
+
+  private OnClickListener hideOnClickListener = new OnClickListener() {
+    @Override
+    public void onClick(View v) {
+      hide();
+    }
+  };
+
+  private OnClickListener skipOnClickListener = new OnClickListener() {
+    @Override
+    public void onClick(View v) {
+      skip();
+    }
+  };
 }

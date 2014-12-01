@@ -20,13 +20,13 @@ import android.view.View;
 import android.view.ViewParent;
 
 interface Reflector {
-    View getHomeButton();
+  View getHomeButton();
 
-    void showcaseActionItem(int itemId);
+  void showcaseActionItem(int itemId);
 
-    ViewParent getActionBarView();
+  ViewParent getActionBarView();
 
-    public enum ActionBarType {
-        STANDARD, APP_COMPAT, ACTIONBAR_SHERLOCK
-    }
+  public enum ActionBarType {
+    STANDARD, APP_COMPAT, ACTIONBAR_SHERLOCK
+  }
 }

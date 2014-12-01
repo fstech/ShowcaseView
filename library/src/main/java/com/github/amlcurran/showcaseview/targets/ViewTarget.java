@@ -27,42 +27,46 @@ import android.view.View;
  */
 public class ViewTarget implements Target {
 
-    private final View mView;
+  private final View mView;
 
-    private int mX = -1;
+  private int mX = -1;
 
-    private int mY = -1;
+  private int mY = -1;
 
-    public ViewTarget(View view) {
-        mView = view;
-    }
+  public ViewTarget(View view) {
+    mView = view;
+  }
 
-    public ViewTarget(int viewId, Activity activity) {
-        mView = activity.findViewById(viewId);
-    }
+  public ViewTarget(int viewId, Activity activity) {
+    mView = activity.findViewById(viewId);
+  }
 
-    public ViewTarget setX(int dpX) {
-        mX = dpToPixels(dpX);
-        return this;
-    }
+  public ViewTarget setX(int dpX) {
+    mX = dpToPixels(dpX);
+    return this;
+  }
 
-    public ViewTarget setY(int dpY) {
-        mY = dpToPixels(dpY);
-        return this;
-    }
+  public ViewTarget setY(int dpY) {
+    mY = dpToPixels(dpY);
+    return this;
+  }
 
-    @Override
-    public Point getPoint() {
-        int[] location = new int[2];
-        mView.getLocationInWindow(location);
-        int x = mX != -1 ? mX : location[0] + mView.getWidth() / 2;
-        int y = mY != -1 ? mY : location[1] + mView.getHeight() / 2;
-        return new Point(x, y);
-    }
+  @Override
+  public Point getPoint() {
+    int[] location = new int[2];
+    mView.getLocationInWindow(location);
+    int x = mX != -1 ? mX : location[0] + mView.getWidth() / 2;
+    int y = mY != -1 ? mY : location[1] + mView.getHeight() / 2;
+    return new Point(x, y);
+  }
 
-    public int dpToPixels(int dp) {
-        Resources resources = Resources.getSystem();
-        return (int) Math.ceil(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.getDisplayMetrics()));
-    }
+  @Override
+  public float getRadius() {
+    return Math.max(mView.getMeasuredHeight(), mView.getMeasuredWidth()) / 2;
+  }
 
+  public int dpToPixels(int dp) {
+    Resources resources = Resources.getSystem();
+    return (int) Math.ceil(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.getDisplayMetrics()));
+  }
 }

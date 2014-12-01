@@ -24,19 +24,17 @@ import android.graphics.Canvas;
  */
 interface ShowcaseDrawer {
 
-    void setShowcaseColour(int color);
+  void setShowcaseColour(int color);
 
-    void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier);
+  void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier, float radius);
 
-    int getShowcaseWidth();
+  int getShowcaseWidth(float radius);
 
-    int getShowcaseHeight();
+  int getShowcaseHeight(float radius);
 
-    float getBlockedRadius();
+  void setBackgroundColour(int backgroundColor);
 
-    void setBackgroundColour(int backgroundColor);
+  void erase(Bitmap bitmapBuffer);
 
-    void erase(Bitmap bitmapBuffer);
-
-    void drawToCanvas(Canvas canvas, Bitmap bitmapBuffer);
+  void drawToCanvas(Canvas canvas, Bitmap bitmapBuffer);
 }
