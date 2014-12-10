@@ -26,6 +26,9 @@ import android.text.SpannableString;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.TextAppearanceSpan;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 /**
  * Draws the text as required by the ShowcaseView

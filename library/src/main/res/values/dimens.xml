@@ -22,4 +22,5 @@
     <dimen name="showcase_radius">94dp</dimen>
     <dimen name="showcase_radius_inner">96dp</dimen>
     <dimen name="showcase_radius_outer">10dp</dimen>
+    <dimen name="showcase_margin">50dp</dimen>
 </resources>

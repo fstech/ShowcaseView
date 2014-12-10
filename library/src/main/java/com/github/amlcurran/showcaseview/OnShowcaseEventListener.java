@@ -22,21 +22,15 @@ package com.github.amlcurran.showcaseview;
 public interface OnShowcaseEventListener {
 
   /**
-   * Called when the ShowcaseView has been told to hide. Use {@link #onShowcaseViewDidHide(ShowcaseView)}
+   * Called when the ShowcaseView has been told to hide. Use {@link #onShowcaseViewDidHide(ShowcaseView, HideReason)}
    * if you want to know when the ShowcaseView has been fully hidden.
    */
   public void onShowcaseViewHide(ShowcaseView showcaseView);
 
   /**
-   * Called when the ShowcaseView has been told to skipped. Use {@link #onShowcaseViewDidHide(ShowcaseView)}
-   * if you want to know when the ShowcaseView has been fully hidden.
-   */
-  public void onShowcaseViewDidSkip(ShowcaseView showcaseView);
-
-  /**
    * Called when the animation hiding the ShowcaseView has finished, and it is no longer visible on the screen.
    */
-  public void onShowcaseViewDidHide(ShowcaseView showcaseView);
+  public void onShowcaseViewDidHide(ShowcaseView showcaseView, HideReason reason);
 
   /**
    * Called when the ShowcaseView is shown.
@@ -54,13 +48,7 @@ public interface OnShowcaseEventListener {
     }
 
     @Override
-    public void onShowcaseViewDidSkip(ShowcaseView showcaseView) {
-
-    }
-
-    @Override
-    public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
-
+    public void onShowcaseViewDidHide(ShowcaseView showcaseView, HideReason hideReason) {
     }
 
     @Override
@@ -68,4 +56,8 @@ public interface OnShowcaseEventListener {
 
     }
   };
+
+  public enum HideReason {
+    SKIP, NEXT, BACK;
+  }
 }

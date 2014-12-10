@@ -16,8 +16,6 @@
 
 package com.github.amlcurran.showcaseview;
 
-import android.widget.RelativeLayout;
-
 /**
  * A simple interface which makes it easy to keep track of what is in the public
  * ShowcaseView API
@@ -32,8 +30,6 @@ public interface ShowcaseViewApi {
   void setContentTitle(CharSequence title);
 
   void setContentText(CharSequence text);
-
-  void setButtonPosition(int... rules);
 
   void setHideOnTouchOutside(boolean hideOnTouch);
 

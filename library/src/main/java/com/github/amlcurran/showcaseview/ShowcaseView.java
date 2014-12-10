@@ -19,6 +19,7 @@ package com.github.amlcurran.showcaseview;
 import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationEndListener;
 import static com.github.amlcurran.showcaseview.AnimationFactory.AnimationStartListener;
 
+import com.github.amlcurran.showcaseview.OnShowcaseEventListener.HideReason;
 import com.github.amlcurran.showcaseview.targets.Target;
 
 import android.app.Activity;
@@ -40,6 +41,7 @@ import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 /**
  * A view which allows you to showcase areas of your app with an explanation.
@@ -49,13 +51,16 @@ public class ShowcaseView extends RelativeLayout
 
   private static final int HOLO_BLUE = Color.parseColor("#33B5E5");
 
-  private final Button mEndButton;
+  private final Button mNextButton;
   private final Button mSkipButton;
+  private final Button mBackButton;
+  private final View mTextContainer;
+  private final TextView mTitleTextView;
+  private final TextView mDetailTextView;
+  private final View mNavigationButtonsContainer;
   private ImageView mImageView;
 
-  private final TextDrawer textDrawer;
   private final ShowcaseDrawer showcaseDrawer;
-  private final ShowcaseAreaCalculator showcaseAreaCalculator;
   private final AnimationFactory animationFactory;
   private final ShotStateStore shotStateStore;
 
@@ -72,9 +77,7 @@ public class ShowcaseView extends RelativeLayout
   private boolean hideOnTouch = false;
   private OnShowcaseEventListener mEventListener = OnShowcaseEventListener.NONE;
 
-  private boolean hasAlteredText = false;
   private boolean hasNoTarget = false;
-  private boolean shouldCentreText;
   private Bitmap bitmapBuffer;
 
   // Animation items
@@ -91,11 +94,9 @@ public class ShowcaseView extends RelativeLayout
 
     ApiUtils apiUtils = new ApiUtils();
     animationFactory = new AnimatorAnimationFactory();
-    showcaseAreaCalculator = new ShowcaseAreaCalculator();
     shotStateStore = new ShotStateStore(context);
 
     apiUtils.setFitsSystemWindowsCompat(this);
-    getViewTreeObserver().addOnPreDrawListener(new CalculateTextOnPreDraw());
     getViewTreeObserver().addOnGlobalLayoutListener(new UpdateOnGlobalLayout());
 
     // Get the attributes for the ShowcaseView
@@ -107,14 +108,22 @@ public class ShowcaseView extends RelativeLayout
     fadeInMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
     fadeOutMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
 
-    mEndButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_button, null);
     mSkipButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_skip_button, null);
+    mTextContainer = LayoutInflater.from(context).inflate(R.layout.showcase_text, null);
+    mTitleTextView = (TextView) mTextContainer.findViewById(R.id.text_title);
+    mDetailTextView = (TextView) mTextContainer.findViewById(R.id.text_detail);
+    mNavigationButtonsContainer = LayoutInflater.from(context).inflate(R.layout.showcase_navigation_buttons, null);
+    mNextButton = (Button) mNavigationButtonsContainer.findViewById(R.id.showcase_next_button);
+    mBackButton = (Button) mNavigationButtonsContainer.findViewById(R.id.showcase_back_button);
+    if (!hasCustomClickListener) {
+      mNextButton.setOnClickListener(nextOnClickListener);
+      mBackButton.setOnClickListener(backOnClickListener);
+    }
     if (newStyle) {
       showcaseDrawer = new NewShowcaseDrawer(getResources());
     } else {
       showcaseDrawer = new StandardShowcaseDrawer(getResources());
     }
-    textDrawer = new TextDrawer(getResources(), showcaseAreaCalculator, getContext());
 
     updateStyle(styled, false);
 
@@ -125,32 +134,35 @@ public class ShowcaseView extends RelativeLayout
 
     setOnTouchListener(this);
 
-    if (mEndButton.getParent() == null) {
-      int margin = (int) getResources().getDimension(R.dimen.button_margin);
-      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-      lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-      lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-      lps.setMargins(margin, margin, margin, margin);
-      mEndButton.setLayoutParams(lps);
-      mEndButton.setText(android.R.string.ok);
-      if (!hasCustomClickListener) {
-        mEndButton.setOnClickListener(hideOnClickListener);
-      }
-      addView(mEndButton);
-    }
-
     if (mSkipButton.getParent() == null) {
       int margin = (int) getResources().getDimension(R.dimen.button_margin);
       RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-      lps.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-      lps.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-      lps.setMargins(margin, margin, margin, margin);
+      lps.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+      lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+      lps.setMargins(margin, margin + getStatusBarHeight(), margin, margin);
       mSkipButton.setLayoutParams(lps);
       mSkipButton.setText(R.string.skip);
       if (!hasCustomClickListener) {
         mSkipButton.setOnClickListener(skipOnClickListener);
       }
       addView(mSkipButton);
+    }
+
+    if (mTextContainer.getParent() == null) {
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      RelativeLayout.LayoutParams lps = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      lps.setMargins(margin, margin, margin, margin);
+      mTextContainer.setLayoutParams(lps);
+      addView(mTextContainer);
+    }
+
+    if (mNavigationButtonsContainer.getParent() == null) {
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+      lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+      lps.setMargins(margin, margin, margin, margin);
+      mNavigationButtonsContainer.setLayoutParams(lps);
+      addView(mNavigationButtonsContainer);
     }
   }
 
@@ -176,7 +188,7 @@ public class ShowcaseView extends RelativeLayout
 
   private int getStatusBarHeight() {
     int statusBarHeight = getResources().getIdentifier("status_bar_height", "dimen", "android");
-    return (int) getResources().getDimension(statusBarHeight);
+    return getResources().getDimensionPixelSize(statusBarHeight);
   }
 
   public boolean hasImageView() {
@@ -197,7 +209,7 @@ public class ShowcaseView extends RelativeLayout
     }
     showcaseX = x;
     showcaseY = y;
-    //init();
+    recalculateText();
     invalidate();
   }
 
@@ -227,8 +239,8 @@ public class ShowcaseView extends RelativeLayout
               if (animate) {
                 animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint, target.getRadius());
               } else {
-                setShowcasePosition(targetPoint);
                 showcaseRadius = target.getRadius();
+                setShowcasePosition(targetPoint);
               }
             } else {
               hasNoTarget = true;
@@ -285,11 +297,11 @@ public class ShowcaseView extends RelativeLayout
     if (shotStateStore.hasShot()) {
       return;
     }
-    if (mEndButton != null) {
+    if (mNextButton != null) {
       if (listener != null) {
-        mEndButton.setOnClickListener(listener);
+        mNextButton.setOnClickListener(listener);
       } else {
-        mEndButton.setOnClickListener(hideOnClickListener);
+        mNextButton.setOnClickListener(nextOnClickListener);
       }
     }
     hasCustomClickListener = true;
@@ -304,18 +316,45 @@ public class ShowcaseView extends RelativeLayout
   }
 
   public void setButtonText(CharSequence text) {
-    if (mEndButton != null) {
-      mEndButton.setText(text);
+    if (mNextButton != null) {
+      mNextButton.setText(text);
     }
   }
 
   private void recalculateText() {
-    boolean recalculatedCling = showcaseAreaCalculator.calculateShowcaseRect(showcaseX, showcaseY, showcaseRadius, showcaseDrawer);
-    boolean recalculateText = recalculatedCling || hasAlteredText;
-    if (recalculateText) {
-      textDrawer.calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(), this, shouldCentreText);
+    RelativeLayout.LayoutParams textParams = (LayoutParams) mTextContainer.getLayoutParams();
+    if (showcaseY - showcaseRadius <= 0) {
+      textParams.addRule(CENTER_IN_PARENT);
+      setButtonPositions(true);
+    } else if (showcaseY + showcaseRadius >= getMeasuredHeight()) {
+      textParams.addRule(CENTER_IN_PARENT);
+      setButtonPositions(false);
+    } else if (showcaseY <= getMeasuredHeight() / 2) {
+      //TODO: Check if these numbers are sane
+      textParams.addRule(ALIGN_PARENT_TOP);
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      int marginTop = (int) getResources().getDimension(R.dimen.showcase_margin);
+      textParams.setMargins(margin, (int) (marginTop + showcaseY + showcaseRadius), margin, margin);
+      setButtonPositions(true);
+    } else {
+      //TODO: Check if these numbers are sane
+      textParams.addRule(ALIGN_PARENT_BOTTOM);
+      int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      int marginTop = (int) getResources().getDimension(R.dimen.showcase_margin);
+      textParams.setMargins(margin, margin, margin,  (int) (marginTop + (getMeasuredHeight() - showcaseY) + showcaseRadius));
+      setButtonPositions(true);
     }
-    hasAlteredText = false;
+    mTextContainer.requestLayout();
+    mNavigationButtonsContainer.requestLayout();
+  }
+
+  private void setButtonPositions(boolean bottom) {
+    RelativeLayout.LayoutParams buttonParams = (LayoutParams) mNavigationButtonsContainer.getLayoutParams();
+    if (bottom) {
+      buttonParams.addRule(ALIGN_PARENT_BOTTOM);
+    } else {
+      buttonParams.addRule(BELOW, mTextContainer.getId());
+    }
   }
 
   @SuppressWarnings("NullableProblems")
@@ -336,28 +375,30 @@ public class ShowcaseView extends RelativeLayout
 
     showcaseDrawer.drawToCanvas(canvas, bitmapBuffer);
 
-    // Draw the text on the screen, recalculating its position if necessary
-    textDrawer.draw(canvas);
-
     super.dispatchDraw(canvas);
   }
 
   @Override
   public void hide() {
-    clearBitmap();
-    // If the type is set to one-shot, store that it has shot
-    shotStateStore.storeShot();
-    mEventListener.onShowcaseViewHide(this);
-    fadeOutShowcase(false);
+    dispatchHide(HideReason.NEXT);
   }
 
   @Override
   public void skip() {
+    dispatchHide(HideReason.SKIP);
+  }
+
+  public void back() {
+    dispatchHide(HideReason.BACK);
+  }
+
+  public void dispatchHide(HideReason reason) {
     clearBitmap();
     // If the type is set to one-shot, store that it has shot
     shotStateStore.storeShot();
-    fadeOutShowcase(true);
+    fadeOutShowcase(reason);
   }
+
 
   private void clearBitmap() {
     if (bitmapBuffer != null && !bitmapBuffer.isRecycled()) {
@@ -366,17 +407,13 @@ public class ShowcaseView extends RelativeLayout
     }
   }
 
-  private void fadeOutShowcase(final boolean skipped) {
+  private void fadeOutShowcase(final HideReason reason) {
     animationFactory.fadeOutView(this, fadeOutMillis, new AnimationEndListener() {
       @Override
       public void onAnimationEnd() {
         setVisibility(View.GONE);
         isShowing = false;
-        if (!skipped) {
-          mEventListener.onShowcaseViewDidHide(ShowcaseView.this);
-        } else {
-          mEventListener.onShowcaseViewDidSkip(ShowcaseView.this);
-        }
+        mEventListener.onShowcaseViewDidHide(ShowcaseView.this, reason);
       }
     });
   }
@@ -433,26 +470,24 @@ public class ShowcaseView extends RelativeLayout
 
   @Override
   public void setContentTitle(CharSequence title) {
-    textDrawer.setContentTitle(title);
+    mTitleTextView.setText(title);
   }
 
   @Override
   public void setContentText(CharSequence text) {
-    textDrawer.setContentText(text);
-  }
-
-  private void setScaleMultiplier(float scaleMultiplier) {
-    this.scaleMultiplier = scaleMultiplier;
+    mDetailTextView.setText(text);
   }
 
   public void hideButton() {
-    mEndButton.setVisibility(GONE);
+    mNextButton.setVisibility(GONE);
     mSkipButton.setVisibility(GONE);
+    mBackButton.setVisibility(GONE);
   }
 
   public void showButton() {
-    mEndButton.setVisibility(VISIBLE);
+    mNextButton.setVisibility(VISIBLE);
     mSkipButton.setVisibility(VISIBLE);
+    mBackButton.setVisibility(VISIBLE);
   }
 
   /**
@@ -471,7 +506,6 @@ public class ShowcaseView extends RelativeLayout
     public Builder(Activity activity, boolean useNewStyle) {
       this.activity = activity;
       this.showcaseView = new ShowcaseView(activity, useNewStyle);
-      this.showcaseView.setTarget(Target.NONE);
     }
 
     /**
@@ -605,20 +639,17 @@ public class ShowcaseView extends RelativeLayout
       return this;
     }
 
-    public Builder setButtonPosition(int... rules) {
-      showcaseView.setButtonPosition(rules);
+    public Builder setBackButtonEnabled(boolean backButtonEnabled) {
+      showcaseView.mBackButton.setVisibility(backButtonEnabled ? VISIBLE : GONE);
+      return this;
+    }
+
+    public Builder setNextButtonText(int textResId) {
+      showcaseView.mNextButton.setText(textResId);
       return this;
     }
   }
 
-  /**
-   * Set whether the text should be centred in the screen, or left-aligned (which is the default).
-   */
-  public void setShouldCentreText(boolean shouldCentreText) {
-    this.shouldCentreText = shouldCentreText;
-    hasAlteredText = true;
-    invalidate();
-  }
 
   /**
    * @see com.github.amlcurran.showcaseview.ShowcaseView.Builder#setSingleShot(long)
@@ -633,16 +664,6 @@ public class ShowcaseView extends RelativeLayout
    * @param layoutParams a {@link android.widget.RelativeLayout.LayoutParams} representing
    * the new position of the button
    */
-  @Override
-  public void setButtonPosition(int... rules) {
-    int margin = (int) getResources().getDimension(R.dimen.button_margin);
-    RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-    for (int rule : rules) {
-      lps.addRule(rule);
-    }
-    lps.setMargins(margin, margin, margin, margin);
-    mEndButton.setLayoutParams(lps);
-  }
 
   /**
    * Set the duration of the fading in and fading out of the ShowcaseView
@@ -709,10 +730,9 @@ public class ShowcaseView extends RelativeLayout
     showcaseDrawer.setShowcaseColour(showcaseColor);
     showcaseDrawer.setBackgroundColour(backgroundColor);
     tintButton(showcaseColor, tintButton);
-    mEndButton.setText(buttonText);
-    textDrawer.setTitleStyling(titleTextAppearance);
-    textDrawer.setDetailStyling(detailTextAppearance);
-    hasAlteredText = true;
+    mNextButton.setText(buttonText);
+    mTitleTextView.setTextAppearance(getContext(), titleTextAppearance);
+    mDetailTextView.setTextAppearance(getContext(), detailTextAppearance);
 
     if (invalidate) {
       invalidate();
@@ -721,10 +741,10 @@ public class ShowcaseView extends RelativeLayout
 
   private void tintButton(int showcaseColor, boolean tintButton) {
     if (tintButton) {
-      mEndButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
+      mNextButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
       mSkipButton.getBackground().setColorFilter(showcaseColor, PorterDuff.Mode.MULTIPLY);
     } else {
-      mEndButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
+      mNextButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
       mSkipButton.getBackground().setColorFilter(HOLO_BLUE, PorterDuff.Mode.MULTIPLY);
     }
   }
@@ -739,16 +759,7 @@ public class ShowcaseView extends RelativeLayout
     }
   }
 
-  private class CalculateTextOnPreDraw implements ViewTreeObserver.OnPreDrawListener {
-
-    @Override
-    public boolean onPreDraw() {
-      recalculateText();
-      return true;
-    }
-  }
-
-  private OnClickListener hideOnClickListener = new OnClickListener() {
+  private OnClickListener nextOnClickListener = new OnClickListener() {
     @Override
     public void onClick(View v) {
       hide();
@@ -759,6 +770,13 @@ public class ShowcaseView extends RelativeLayout
     @Override
     public void onClick(View v) {
       skip();
+    }
+  };
+
+  private OnClickListener backOnClickListener = new OnClickListener() {
+    @Override
+    public void onClick(View v) {
+      back();
     }
   };
 }

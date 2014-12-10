@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Button xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/ShowcaseSkipButton"
+    style="@style/ShowcaseButton"
     android:text="@string/skip"
+    android:minWidth="0dp"
+    android:background="@android:color/transparent"
     android:id="@id/showcase_button"/>
