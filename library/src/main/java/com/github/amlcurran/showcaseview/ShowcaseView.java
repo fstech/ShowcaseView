@@ -323,10 +323,10 @@ public class ShowcaseView extends RelativeLayout
 
   private void recalculateText() {
     RelativeLayout.LayoutParams textParams = (LayoutParams) mTextContainer.getLayoutParams();
-    if (showcaseY - showcaseRadius <= 0) {
+    if (showcaseY - showcaseRadius * 2 <= 0) {
       textParams.addRule(CENTER_IN_PARENT);
       setButtonPositions(true);
-    } else if (showcaseY + showcaseRadius >= getMeasuredHeight()) {
+    } else if (showcaseY + showcaseRadius * 2 >= getMeasuredHeight()) {
       textParams.addRule(CENTER_IN_PARENT);
       setButtonPositions(false);
     } else if (showcaseY <= getMeasuredHeight() / 2) {
