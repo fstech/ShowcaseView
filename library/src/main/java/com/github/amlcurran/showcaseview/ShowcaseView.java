@@ -150,8 +150,9 @@ public class ShowcaseView extends RelativeLayout
 
     if (mTextContainer.getParent() == null) {
       int margin = (int) getResources().getDimension(R.dimen.button_margin);
+      int sideMargin = (int) getResources().getDimension(R.dimen.text_padding);
       RelativeLayout.LayoutParams lps = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      lps.setMargins(margin, margin, margin, margin);
+      lps.setMargins(sideMargin, margin, sideMargin, margin);
       mTextContainer.setLayoutParams(lps);
       addView(mTextContainer);
     }
