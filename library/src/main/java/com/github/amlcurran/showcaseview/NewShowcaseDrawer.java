@@ -47,7 +47,7 @@ class NewShowcaseDrawer extends StandardShowcaseDrawer {
   @Override
   public void drawShowcase(Bitmap buffer, float x, float y, float scaleMultiplier, float radius) {
     Canvas bufferCanvas = new Canvas(buffer);
-    bufferCanvas.drawCircle(x, y, radius, eraserPaint);
+    bufferCanvas.drawCircle(x, y, radius + outerRadiusSpace / 2, eraserPaint);
     bufferCanvas.drawCircle(x, y, radius, showcasePaint);
   }
 
