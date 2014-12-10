@@ -16,6 +16,8 @@
 
 package com.github.amlcurran.showcaseview.targets;
 
+import com.github.amlcurran.showcaseview.R;
+
 import android.app.Activity;
 import android.content.res.Resources;
 import android.graphics.Point;
@@ -28,17 +30,24 @@ import android.view.View;
 public class ViewTarget implements Target {
 
   private final View mView;
+  private final float mRadius;
 
   private int mX = -1;
 
   private int mY = -1;
 
   public ViewTarget(View view) {
+    this(view, Math.max(view.getMeasuredHeight(), view.getMeasuredWidth()) / 2);
+  }
+
+  public ViewTarget(View view, float radius) {
     mView = view;
+    mRadius = radius;
   }
 
   public ViewTarget(int viewId, Activity activity) {
     mView = activity.findViewById(viewId);
+    mRadius = Math.max(mView.getMeasuredHeight(), mView.getMeasuredWidth()) / 2;
   }
 
   public ViewTarget setX(int dpX) {
@@ -62,7 +71,7 @@ public class ViewTarget implements Target {
 
   @Override
   public float getRadius() {
-    return Math.max(mView.getMeasuredHeight(), mView.getMeasuredWidth()) / 2;
+    return  mRadius + mView.getResources().getDimension(R.dimen.showcase_radius_outer);
   }
 
   public int dpToPixels(int dp) {
