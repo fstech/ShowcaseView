@@ -31,6 +31,7 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -58,6 +59,7 @@ public class ShowcaseView extends RelativeLayout
   private final TextView mTitleTextView;
   private final TextView mDetailTextView;
   private final View mNavigationButtonsContainer;
+  private final UpdateOnGlobalLayout mUpdateOnGlobalLayout;
   private ImageView mImageView;
 
   private final ShowcaseDrawer showcaseDrawer;
@@ -97,7 +99,8 @@ public class ShowcaseView extends RelativeLayout
     shotStateStore = new ShotStateStore(context);
 
     apiUtils.setFitsSystemWindowsCompat(this);
-    getViewTreeObserver().addOnGlobalLayoutListener(new UpdateOnGlobalLayout());
+    mUpdateOnGlobalLayout = new UpdateOnGlobalLayout();
+    getViewTreeObserver().addOnGlobalLayoutListener(mUpdateOnGlobalLayout);
 
     // Get the attributes for the ShowcaseView
     final TypedArray styled = context.getTheme()
@@ -395,11 +398,21 @@ public class ShowcaseView extends RelativeLayout
 
   public void dispatchHide(HideReason reason) {
     clearBitmap();
+    if (mUpdateOnGlobalLayout != null) {
+      removeOnGlobalLayoutListener();
+    }
     // If the type is set to one-shot, store that it has shot
     shotStateStore.storeShot();
     fadeOutShowcase(reason);
   }
 
+  private void removeOnGlobalLayoutListener() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+      getViewTreeObserver().removeGlobalOnLayoutListener(mUpdateOnGlobalLayout);
+    } else {
+      getViewTreeObserver().removeOnGlobalLayoutListener(mUpdateOnGlobalLayout);
+    }
+  }
 
   private void clearBitmap() {
     if (bitmapBuffer != null && !bitmapBuffer.isRecycled()) {
