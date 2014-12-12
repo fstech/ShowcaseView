@@ -86,6 +86,7 @@ public class ShowcaseView extends RelativeLayout
   private long fadeInMillis;
   private long fadeOutMillis;
   private boolean isShowing;
+  private Target mTarget;
 
   protected ShowcaseView(Context context, boolean newStyle) {
     this(context, null, R.styleable.CustomTheme_showcaseViewStyle, newStyle);
@@ -152,22 +153,30 @@ public class ShowcaseView extends RelativeLayout
     }
 
     if (mTextContainer.getParent() == null) {
-      int margin = (int) getResources().getDimension(R.dimen.button_margin);
-      int sideMargin = (int) getResources().getDimension(R.dimen.text_padding);
-      RelativeLayout.LayoutParams lps = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      lps.setMargins(sideMargin, margin, sideMargin, margin);
-      mTextContainer.setLayoutParams(lps);
+      mTextContainer.setLayoutParams(generateDefaultTextParams());
       addView(mTextContainer);
     }
 
     if (mNavigationButtonsContainer.getParent() == null) {
-      int margin = (int) getResources().getDimension(R.dimen.button_margin);
-      RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
-      lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-      lps.setMargins(margin, margin, margin, margin);
-      mNavigationButtonsContainer.setLayoutParams(lps);
+      mNavigationButtonsContainer.setLayoutParams(generateDefaultNavigationButtonsParams());
       addView(mNavigationButtonsContainer);
     }
+  }
+
+  private LayoutParams generateDefaultTextParams() {
+    int margin = (int) getResources().getDimension(R.dimen.button_margin);
+    int sideMargin = (int) getResources().getDimension(R.dimen.text_padding);
+    RelativeLayout.LayoutParams lps = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    lps.setMargins(sideMargin, margin, sideMargin, margin);
+    return lps;
+  }
+
+  private LayoutParams generateDefaultNavigationButtonsParams() {
+    int margin = (int) getResources().getDimension(R.dimen.button_margin);
+    RelativeLayout.LayoutParams lps = (LayoutParams) generateDefaultLayoutParams();
+    lps.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+    lps.setMargins(margin, margin, margin, margin);
+    return lps;
   }
 
   public void initImage() {
@@ -240,6 +249,7 @@ public class ShowcaseView extends RelativeLayout
             Point targetPoint = target.getPoint();
             if (targetPoint != null) {
               hasNoTarget = false;
+              mTarget = target;
               if (animate) {
                 animationFactory.animateTargetToPoint(ShowcaseView.this, targetPoint, target.getRadius());
               } else {
@@ -326,7 +336,7 @@ public class ShowcaseView extends RelativeLayout
   }
 
   private void recalculateText() {
-    RelativeLayout.LayoutParams textParams = (LayoutParams) mTextContainer.getLayoutParams();
+    RelativeLayout.LayoutParams textParams = generateDefaultTextParams();
     if (showcaseY - showcaseRadius * 2 <= 0) {
       textParams.addRule(CENTER_IN_PARENT);
       setButtonPositions(true);
@@ -348,17 +358,17 @@ public class ShowcaseView extends RelativeLayout
       textParams.setMargins(margin, margin, margin,  (int) (marginTop + (getMeasuredHeight() - showcaseY) + showcaseRadius));
       setButtonPositions(true);
     }
-    mTextContainer.requestLayout();
-    mNavigationButtonsContainer.requestLayout();
+    mTextContainer.setLayoutParams(textParams);
   }
 
   private void setButtonPositions(boolean bottom) {
-    RelativeLayout.LayoutParams buttonParams = (LayoutParams) mNavigationButtonsContainer.getLayoutParams();
+    RelativeLayout.LayoutParams buttonParams = generateDefaultNavigationButtonsParams();
     if (bottom) {
       buttonParams.addRule(ALIGN_PARENT_BOTTOM);
     } else {
       buttonParams.addRule(BELOW, mTextContainer.getId());
     }
+    mNavigationButtonsContainer.setLayoutParams(buttonParams);
   }
 
   @SuppressWarnings("NullableProblems")
@@ -769,6 +779,9 @@ public class ShowcaseView extends RelativeLayout
     public void onGlobalLayout() {
       if (!shotStateStore.hasShot()) {
         updateBitmap();
+      }
+      if (mTarget != null && mTarget.getPoint() != null && !mTarget.getPoint().equals(showcaseX, showcaseY)) {
+        setShowcasePosition(mTarget.getPoint());
       }
     }
   }
