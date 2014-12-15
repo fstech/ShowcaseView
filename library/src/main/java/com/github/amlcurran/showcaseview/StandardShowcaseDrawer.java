@@ -45,6 +45,10 @@ class StandardShowcaseDrawer implements ShowcaseDrawer {
   }
 
   @Override
+  public void setOuterRadius(int pxRadius) {
+  }
+
+  @Override
   public void setShowcaseColour(int color) {
     showcaseDrawable.setColorFilter(color, PorterDuff.Mode.MULTIPLY);
   }

@@ -45,4 +45,8 @@ public class PointTarget implements Target {
   public float getRadius() {
     return mRadius;
   }
+
+  @Override
+  public void setOuterRadius(int outerRadius) {
+  }
 }

@@ -27,7 +27,7 @@ import android.graphics.Paint.Style;
  */
 class NewShowcaseDrawer extends StandardShowcaseDrawer {
 
-  private final float outerRadiusSpace;
+  private float outerRadiusSpace;
   private final Paint showcasePaint;
 
   public NewShowcaseDrawer(Resources resources) {
@@ -42,6 +42,12 @@ class NewShowcaseDrawer extends StandardShowcaseDrawer {
   @Override
   public void setShowcaseColour(int color) {
     showcasePaint.setColor(color);
+  }
+
+  @Override
+  public void setOuterRadius(int pxRadius) {
+    outerRadiusSpace = pxRadius;
+    showcasePaint.setStrokeWidth(outerRadiusSpace);
   }
 
   @Override

@@ -29,9 +29,15 @@ public interface Target {
     public float getRadius() {
       return 0;
     }
+
+    @Override
+    public void setOuterRadius(int outerRadius) {
+    }
   };
 
   public Point getPoint();
 
   public float getRadius();
+
+  public void setOuterRadius(int outerRadius);
 }

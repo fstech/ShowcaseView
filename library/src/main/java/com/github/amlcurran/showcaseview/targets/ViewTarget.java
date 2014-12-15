@@ -30,11 +30,15 @@ import android.view.View;
 public class ViewTarget implements Target {
 
   private final View mView;
-  private float mRadius;
+  private float mRadius = 0;
 
   private int mX = -1;
 
   private int mY = -1;
+
+  private boolean mExactHeight = false;
+
+  private int mOuterRadius = -1;
 
   public ViewTarget(View view) {
     mView = view;
@@ -59,6 +63,16 @@ public class ViewTarget implements Target {
     return this;
   }
 
+  public ViewTarget setRadius(int dpRadius) {
+    mRadius = dpToPixels(dpRadius);
+    return this;
+  }
+
+  public ViewTarget setExactHeight() {
+    mExactHeight = true;
+    return this;
+  }
+
   @Override
   public Point getPoint() {
     int[] location = new int[2];
@@ -70,10 +84,19 @@ public class ViewTarget implements Target {
 
   @Override
   public float getRadius() {
+    if (mExactHeight) {
+      mRadius = mView.getMeasuredHeight() / 2;
+    }
     if (mRadius == 0) {
       mRadius = Math.max(mView.getMeasuredHeight(), mView.getMeasuredWidth()) / 2;
     }
-    return  mRadius + mView.getResources().getDimension(R.dimen.showcase_radius_outer);
+    int outerRadius = mOuterRadius != -1 ? mOuterRadius : (int) mView.getResources().getDimension(R.dimen.showcase_radius_outer);
+    return mRadius + outerRadius;
+  }
+
+  @Override
+  public void setOuterRadius(int outerRadius) {
+    mOuterRadius = outerRadius;
   }
 
   public int dpToPixels(int dp) {

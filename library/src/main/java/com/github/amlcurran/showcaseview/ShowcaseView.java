@@ -34,6 +34,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -87,6 +88,8 @@ public class ShowcaseView extends RelativeLayout
   private long fadeOutMillis;
   private boolean isShowing;
   private Target mTarget;
+
+  private boolean mAdjustTopMargin = false;
 
   protected ShowcaseView(Context context, boolean newStyle) {
     this(context, null, R.styleable.CustomTheme_showcaseViewStyle, newStyle);
@@ -169,6 +172,12 @@ public class ShowcaseView extends RelativeLayout
     RelativeLayout.LayoutParams lps = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lps.setMargins(sideMargin, margin, sideMargin, margin);
     return lps;
+  }
+
+  private boolean mButtonsPosition = false;
+
+  public void setButtonsPosition(boolean bottom) {
+    mButtonsPosition = bottom;
   }
 
   private LayoutParams generateDefaultNavigationButtonsParams() {
@@ -338,20 +347,32 @@ public class ShowcaseView extends RelativeLayout
   private void recalculateText() {
     RelativeLayout.LayoutParams textParams = generateDefaultTextParams();
     if (showcaseY - showcaseRadius * 2 <= 0) {
-      textParams.addRule(CENTER_IN_PARENT);
+      if (mAdjustTopMargin) {
+        int wideMargin = (int) getResources().getDimension(R.dimen.text_padding);
+        textParams.addRule(CENTER_HORIZONTAL);
+        textParams.addRule(ALIGN_TOP);
+        textParams.setMargins(wideMargin, getStatusBarHeight() + wideMargin, wideMargin, wideMargin);
+      } else {
+        textParams.addRule(CENTER_IN_PARENT);
+      }
       setButtonPositions(true);
     } else if (showcaseY + showcaseRadius * 2 >= getMeasuredHeight()) {
-      textParams.addRule(CENTER_IN_PARENT);
+      if (mAdjustTopMargin) {
+        int wideMargin = (int) getResources().getDimension(R.dimen.text_padding);
+        textParams.addRule(CENTER_HORIZONTAL);
+        textParams.addRule(ALIGN_TOP);
+        textParams.setMargins(wideMargin, getStatusBarHeight() + wideMargin, wideMargin, wideMargin);
+      } else {
+        textParams.addRule(CENTER_IN_PARENT);
+      }
       setButtonPositions(false);
     } else if (showcaseY <= getMeasuredHeight() / 2) {
-      //TODO: Check if these numbers are sane
       textParams.addRule(ALIGN_PARENT_TOP);
       int margin = (int) getResources().getDimension(R.dimen.button_margin);
       int marginTop = (int) getResources().getDimension(R.dimen.showcase_margin);
       textParams.setMargins(margin, (int) (marginTop + showcaseY + showcaseRadius), margin, margin);
       setButtonPositions(true);
     } else {
-      //TODO: Check if these numbers are sane
       textParams.addRule(ALIGN_PARENT_BOTTOM);
       int margin = (int) getResources().getDimension(R.dimen.button_margin);
       int marginTop = (int) getResources().getDimension(R.dimen.showcase_margin);
@@ -363,7 +384,7 @@ public class ShowcaseView extends RelativeLayout
 
   private void setButtonPositions(boolean bottom) {
     RelativeLayout.LayoutParams buttonParams = generateDefaultNavigationButtonsParams();
-    if (bottom) {
+    if (mButtonsPosition || bottom) {
       buttonParams.addRule(ALIGN_PARENT_BOTTOM);
     } else {
       buttonParams.addRule(BELOW, mTextContainer.getId());
@@ -512,6 +533,17 @@ public class ShowcaseView extends RelativeLayout
     mNextButton.setVisibility(VISIBLE);
     mSkipButton.setVisibility(VISIBLE);
     mBackButton.setVisibility(VISIBLE);
+  }
+
+  public void setExpireAfter(long millis) {
+    mSkipButton.setVisibility(View.GONE);
+    mNavigationButtonsContainer.setVisibility(View.GONE);
+    postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        nextOnClickListener.onClick(ShowcaseView.this);
+      }
+    }, millis);
   }
 
   /**
@@ -670,6 +702,60 @@ public class ShowcaseView extends RelativeLayout
 
     public Builder setNextButtonText(int textResId) {
       showcaseView.mNextButton.setText(textResId);
+      return this;
+    }
+
+    public Builder setSkipButtonText(int textResId) {
+      showcaseView.mSkipButton.setText(textResId);
+      return this;
+    }
+
+    public Builder setSkipButtonLayoutParams(LayoutParams lps) {
+      if (lps != null) {
+        showcaseView.mSkipButton.setLayoutParams(lps);
+        showcaseView.mSkipButton.requestLayout();
+      }
+      return this;
+    }
+
+    public Builder setButtonsPosition(boolean bottom) {
+      showcaseView.setButtonsPosition(bottom);
+      return this;
+    }
+
+    public Builder setExpireAfter(long millis) {
+      showcaseView.setExpireAfter(millis);
+      return this;
+    }
+
+    public Builder setHeight(int height) {
+      if (height != -1) {
+        ViewGroup.LayoutParams lps = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
+        showcaseView.setLayoutParams(lps);
+        showcaseView.invalidate();
+      }
+      return this;
+    }
+
+    public Builder adjTopMargin(boolean adjTopMargin) {
+      if (adjTopMargin) {
+        showcaseView.mAdjustTopMargin = true;
+        showcaseView.recalculateText();
+      }
+      return this;
+    }
+
+    public Builder setTitleSize(int spSize) {
+      if (spSize != -1) {
+        showcaseView.mTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, spSize);
+      }
+      return this;
+    }
+
+    public Builder setOuterRadius(int pxRadius) {
+      if (pxRadius != -1) {
+        showcaseView.showcaseDrawer.setOuterRadius(pxRadius);
+      }
       return this;
     }
   }

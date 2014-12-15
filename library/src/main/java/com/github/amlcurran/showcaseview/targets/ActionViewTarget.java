@@ -77,6 +77,10 @@ public class ActionViewTarget implements Target {
     return mViewTarget.getRadius();
   }
 
+  @Override
+  public void setOuterRadius(int outerRadius) {
+  }
+
   public enum Type {
     SPINNER, HOME, TITLE, OVERFLOW, MEDIA_ROUTE_BUTTON
   }

@@ -18,6 +18,7 @@
 <resources>
     <string name="ok">OK</string>
     <string name="skip">SKIP</string>
+    <string name="exit_tour">EXIT TOUR</string>
     <string name="back">BACK</string>
     <string name="next">NEXT</string>
     <string name="got_it">GOT IT</string>

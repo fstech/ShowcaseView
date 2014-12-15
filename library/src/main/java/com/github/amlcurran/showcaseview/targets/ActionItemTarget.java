@@ -54,6 +54,10 @@ public class ActionItemTarget implements Target {
     return mViewTarget.getRadius();
   }
 
+  @Override
+  public void setOuterRadius(int outerRadius) {
+  }
+
   protected void setUp() {
     Reflector reflector = ReflectorFactory.getReflectorForActivity(mActivity);
     ViewParent p = reflector.getActionBarView(); //ActionBarView
