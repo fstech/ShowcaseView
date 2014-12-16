@@ -348,7 +348,7 @@ public class ShowcaseView extends RelativeLayout
     RelativeLayout.LayoutParams textParams = generateDefaultTextParams();
     if (showcaseY - showcaseRadius * 2 <= 0) {
       if (mAdjustTopMargin) {
-        int wideMargin = (int) getResources().getDimension(R.dimen.text_padding);
+        int wideMargin = 2 * (int) getResources().getDimension(R.dimen.button_margin);
         textParams.addRule(CENTER_HORIZONTAL);
         textParams.addRule(ALIGN_TOP);
         textParams.setMargins(wideMargin, getStatusBarHeight() + wideMargin, wideMargin, wideMargin);
@@ -358,7 +358,7 @@ public class ShowcaseView extends RelativeLayout
       setButtonPositions(true);
     } else if (showcaseY + showcaseRadius * 2 >= getMeasuredHeight()) {
       if (mAdjustTopMargin) {
-        int wideMargin = (int) getResources().getDimension(R.dimen.text_padding);
+        int wideMargin = 2 * (int) getResources().getDimension(R.dimen.button_margin);
         textParams.addRule(CENTER_HORIZONTAL);
         textParams.addRule(ALIGN_TOP);
         textParams.setMargins(wideMargin, getStatusBarHeight() + wideMargin, wideMargin, wideMargin);
@@ -731,6 +731,15 @@ public class ShowcaseView extends RelativeLayout
     public Builder setHeight(int height) {
       if (height != -1) {
         ViewGroup.LayoutParams lps = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
+        showcaseView.setLayoutParams(lps);
+        showcaseView.invalidate();
+      }
+      return this;
+    }
+
+    public Builder setWidth(int width) {
+      if (width != -1) {
+        ViewGroup.LayoutParams lps = new ViewGroup.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT);
         showcaseView.setLayoutParams(lps);
         showcaseView.invalidate();
       }
