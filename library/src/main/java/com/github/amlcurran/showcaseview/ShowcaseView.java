@@ -761,6 +761,13 @@ public class ShowcaseView extends RelativeLayout
       return this;
     }
 
+    public Builder setTextSize(int spSize) {
+      if (spSize != -1) {
+        showcaseView.mDetailTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, spSize);
+      }
+      return this;
+    }
+
     public Builder setOuterRadius(int pxRadius) {
       if (pxRadius != -1) {
         showcaseView.showcaseDrawer.setOuterRadius(pxRadius);
