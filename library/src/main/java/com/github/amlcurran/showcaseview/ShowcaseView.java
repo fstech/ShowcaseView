@@ -41,6 +41,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -500,7 +501,7 @@ public class ShowcaseView extends RelativeLayout
 
   private static void insertShowcaseView(ShowcaseView showcaseView, Activity activity) {
     showcaseView.initImage();
-    ((ViewGroup) activity.getWindow().getDecorView()).addView(showcaseView);
+    ((FrameLayout) activity.getWindow().getDecorView()).addView(showcaseView);
     if (!showcaseView.hasShot()) {
       showcaseView.show();
     } else {
@@ -743,6 +744,18 @@ public class ShowcaseView extends RelativeLayout
         showcaseView.setLayoutParams(lps);
         showcaseView.invalidate();
       }
+      return this;
+    }
+
+    public Builder setGravity(int gravity) {
+      ViewGroup.LayoutParams layoutParams = showcaseView.getLayoutParams();
+      if (layoutParams == null) {
+        layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+      }
+      final FrameLayout.LayoutParams gravityLayoutParams = new FrameLayout.LayoutParams(layoutParams.width, layoutParams.height);
+      gravityLayoutParams.gravity = gravity;
+      showcaseView.setLayoutParams(gravityLayoutParams);
+      showcaseView.invalidate();
       return this;
     }
 
