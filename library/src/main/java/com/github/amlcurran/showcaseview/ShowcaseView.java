@@ -40,6 +40,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -470,6 +471,8 @@ public class ShowcaseView extends RelativeLayout
   public void show() {
     isShowing = true;
     mEventListener.onShowcaseViewShow(this);
+    final InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+    imm.hideSoftInputFromWindow(getWindowToken(), 0);
     fadeInShowcase();
   }
 
